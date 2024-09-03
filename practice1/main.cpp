@@ -23,6 +23,19 @@ out_color = vec4(1.0, 0.0, 0.0, 1.0);
 }
 )";
 
+const char vertex_source[] =
+R"(#version 330 core
+const vec2 VERTICES[3] = vec2[3](
+vec2(0.0, 0.0),
+vec2(1.0, 0.0),
+vec2(0.0, 1.0)
+);
+void main()
+{
+gl_Position = vec4(VERTICES[gl_VertexID], 0.0, 1.0);
+}
+)";
+
 std::string to_string(std::string_view str)
 {
     return std::string(str.begin(), str.end());
@@ -87,7 +100,8 @@ int main() try
 
     glClearColor(0.8f, 0.8f, 1.f, 0.f);
 
-	GLuint shader = create_shader(GL_FRAGMENT_SHADER, fragment_source);
+	GLuint fragment_shader = create_shader(GL_FRAGMENT_SHADER, fragment_source);
+	GLuint vertex_shader = create_shader(GL_VERTEX_SHADER, vertex_source);
 
     bool running = true;
     while (running)
