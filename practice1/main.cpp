@@ -120,6 +120,9 @@ int main() try
 	GLuint vertex_shader = create_shader(GL_VERTEX_SHADER, vertex_source);
     GLuint program = create_program(vertex_shader, fragment_shader);
 
+    GLuint vertex_array;
+    glGenVertexArrays(1, &vertex_array);
+
     bool running = true;
     while (running)
     {
@@ -134,6 +137,10 @@ int main() try
             break;
 
         glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(program);
+        glBindVertexArray(vertex_array);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         SDL_GL_SwapWindow(window);
     }
