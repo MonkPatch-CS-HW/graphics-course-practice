@@ -15,16 +15,18 @@ char info_log[1024];
 
 const char fragment_source[] =
 R"(#version 330 core
+in vec3 color;
 layout (location = 0) out vec4 out_color;
 void main()
 {
-// vec4(R, G, B, A)
-out_color = vec4(1.0, 0.0, 0.0, 1.0);
+    // vec4(R, G, B, A)
+    out_color = vec4(color, 1.0);
 }
 )";
 
 const char vertex_source[] =
 R"(#version 330 core
+out vec3 color;
 const vec2 VERTICES[3] = vec2[3](
 vec2(0.0, 0.0),
 vec2(1.0, 0.0),
@@ -32,7 +34,8 @@ vec2(0.0, 1.0)
 );
 void main()
 {
-gl_Position = vec4(VERTICES[gl_VertexID], 0.0, 1.0);
+    gl_Position = vec4(VERTICES[gl_VertexID], 0.0, 1.0);
+    color = vec3(gl_Position);
 }
 )";
 
