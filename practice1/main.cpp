@@ -15,7 +15,7 @@ char info_log[1024];
 
 const char fragment_source[] =
 R"(#version 330 core
-in vec3 color;
+flat in vec3 color;
 layout (location = 0) out vec4 out_color;
 void main()
 {
@@ -26,7 +26,7 @@ void main()
 
 const char vertex_source[] =
 R"(#version 330 core
-out vec3 color;
+flat out vec3 color;
 const vec2 VERTICES[3] = vec2[3](
 vec2(0.0, 0.0),
 vec2(1.0, 0.0),
