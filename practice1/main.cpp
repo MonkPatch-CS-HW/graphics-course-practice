@@ -13,6 +13,16 @@
 
 char info_log[1024];
 
+const char fragment_source[] =
+R"(#version 330 core
+layout (location = 0) out vec4 out_color;
+void main()
+{
+// vec4(R, G, B, A)
+out_color = vec4(1.0, 0.0, 0.0, 1.0);
+}
+)";
+
 std::string to_string(std::string_view str)
 {
     return std::string(str.begin(), str.end());
@@ -77,7 +87,7 @@ int main() try
 
     glClearColor(0.8f, 0.8f, 1.f, 0.f);
 
-	GLuint shader = create_shader(GL_FRAGMENT_SHADER, "");
+	GLuint shader = create_shader(GL_FRAGMENT_SHADER, fragment_source);
 
     bool running = true;
     while (running)
