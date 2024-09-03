@@ -36,6 +36,24 @@ gl_Position = vec4(VERTICES[gl_VertexID], 0.0, 1.0);
 }
 )";
 
+GLuint create_program(GLuint vertex_shader, GLuint fragment_shader) {
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertex_shader);
+    glAttachShader(program, fragment_shader);
+    glLinkProgram(program);
+
+    GLint link_status;
+    glGetProgramiv(program, GL_LINK_STATUS, &link_status);
+    if (link_status != GL_TRUE) {
+        GLint log_length;
+        glGetProgramInfoLog(program, 1024, &log_length, info_log);
+
+        throw std::runtime_error("could not link program:\n\t" + std::string(info_log));
+    }
+
+    return program;
+}
+
 std::string to_string(std::string_view str)
 {
     return std::string(str.begin(), str.end());
@@ -59,8 +77,6 @@ GLuint create_shader(GLenum shader_type, const char * shader_source) {
     GLint compile_status, log_length;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_status);
     if (compile_status != GL_TRUE) {
-        // why
-        // glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
         glGetShaderInfoLog(shader, 1024, &log_length, info_log);
 
         throw std::runtime_error("could not compile shader:\n\t" + std::string(info_log));
@@ -102,6 +118,7 @@ int main() try
 
 	GLuint fragment_shader = create_shader(GL_FRAGMENT_SHADER, fragment_source);
 	GLuint vertex_shader = create_shader(GL_VERTEX_SHADER, vertex_source);
+    GLuint program = create_program(vertex_shader, fragment_shader);
 
     bool running = true;
     while (running)
