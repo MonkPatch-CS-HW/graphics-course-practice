@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <iostream>
 
+char info_log[1024];
+
 std::string to_string(std::string_view str)
 {
     return std::string(str.begin(), str.end());
@@ -27,16 +29,21 @@ void glew_fail(std::string_view message, GLenum error)
 }
 
 GLuint create_shader(GLenum shader_type, const char * shader_source) {
-  GLuint shader = glCreateShader(shader_type);
-  glShaderSource(shader, 1, &shader_source, NULL);
-  glCompileShader(shader);
+    GLuint shader = glCreateShader(shader_type);
+    glShaderSource(shader, 1, &shader_source, NULL);
+    glCompileShader(shader);
 
-  GLint compile_status;
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_status);
-  if (compile_status != GL_TRUE)
-    throw std::runtime_error("could not compile shader");
+    GLint compile_status, log_length;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_status);
+    if (compile_status != GL_TRUE) {
+        // why
+        // glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
+        glGetShaderInfoLog(shader, 1024, &log_length, info_log);
 
-  return shader;
+        throw std::runtime_error("could not compile shader:\n\t" + std::string(info_log));
+    }
+
+    return shader;
 }
 
 int main() try
