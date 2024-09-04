@@ -26,6 +26,19 @@ void glew_fail(std::string_view message, GLenum error)
     throw std::runtime_error(to_string(message) + reinterpret_cast<const char *>(glewGetErrorString(error)));
 }
 
+GLuint create_shader(GLenum shader_type, const char * shader_source) {
+  GLuint shader = glCreateShader(shader_type);
+  glShaderSource(shader, 1, &shader_source, NULL);
+  glCompileShader(shader);
+
+  GLint compile_status;
+  glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_status);
+  if (compile_status != GL_TRUE)
+    throw std::runtime_error("could not compile shader");
+
+  return shader;
+}
+
 int main() try
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
@@ -56,6 +69,8 @@ int main() try
         throw std::runtime_error("OpenGL 3.3 is not supported");
 
     glClearColor(0.8f, 0.8f, 1.f, 0.f);
+
+	GLuint shader = create_shader(GL_FRAGMENT_SHADER, "");
 
     bool running = true;
     while (running)
