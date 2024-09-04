@@ -15,18 +15,28 @@ char info_log[1024];
 
 const char fragment_source[] =
 R"(#version 330 core
-flat in vec3 color;
+in vec3 color;
+float a, b, c;
 layout (location = 0) out vec4 out_color;
 void main()
 {
     // vec4(R, G, B, A)
-    out_color = vec4(color, 1.0);
-}
-)";
+    a = 8 * color.r - floor(8 * color.r);
+    if (a < 0.5) a = 0.0;
+    else a = 1.0;
+    b = 8 * color.g - floor(8 * color.g);
+    if (b < 0.5) b = 0.0;
+    else b = 1.0;
+
+    c = a + b;
+    if (c == 2.0) c = 0;
+
+    out_color = vec4(c, c, c, 1.0);
+})";
 
 const char vertex_source[] =
 R"(#version 330 core
-flat out vec3 color;
+out vec3 color;
 const vec2 VERTICES[3] = vec2[3](
 vec2(0.0, 0.0),
 vec2(1.0, 0.0),
