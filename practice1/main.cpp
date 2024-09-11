@@ -11,20 +11,18 @@
 #include <stdexcept>
 #include <iostream>
 
-char info_log[1024];
-
 const char fragment_source[] =
 R"(#version 330 core
 in vec3 color;
-float a, b, c;
 layout (location = 0) out vec4 out_color;
 void main()
 {
+    float a, b, c;
     // vec4(R, G, B, A)
-    a = 8 * color.r - floor(8 * color.r);
+    a = mod(8 * color.r, 1);
     if (a < 0.5) a = 0.0;
     else a = 1.0;
-    b = 8 * color.g - floor(8 * color.g);
+    b = mod(8 * color.g, 1);
     if (b < 0.5) b = 0.0;
     else b = 1.0;
 
@@ -50,6 +48,8 @@ void main()
 )";
 
 GLuint create_program(GLuint vertex_shader, GLuint fragment_shader) {
+    static char info_log[1024];
+
     GLuint program = glCreateProgram();
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
@@ -83,6 +83,8 @@ void glew_fail(std::string_view message, GLenum error)
 }
 
 GLuint create_shader(GLenum shader_type, const char * shader_source) {
+    static char info_log[1024];
+
     GLuint shader = glCreateShader(shader_type);
     glShaderSource(shader, 1, &shader_source, NULL);
     glCompileShader(shader);
