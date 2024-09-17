@@ -196,15 +196,16 @@ int main() try
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        time += dt;
+        time += dt * 4;
 
         glUseProgram(program);
 
+        float x = cos(time) / 4, y = sin(time) / 4;
         float transform[] = {
             cos(time), -sin(time), 0, 0,
             sin(time),  cos(time), 0, 0,
             0,          0,         1, 0,
-            0,          0,         0, 1
+            x,          y,         0, 1
         };
 
         glUniformMatrix4fv(rotmat, 1, true, transform);
