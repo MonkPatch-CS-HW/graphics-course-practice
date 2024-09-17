@@ -1,0 +1,3 @@
+/home/monkpatch/Projects/graphics-course-practice/practice1/CMakeFiles/practice1.dir
+/home/monkpatch/Projects/graphics-course-practice/practice1/CMakeFiles/edit_cache.dir
+/home/monkpatch/Projects/graphics-course-practice/practice1/CMakeFiles/rebuild_cache.dir
