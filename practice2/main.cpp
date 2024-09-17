@@ -46,14 +46,10 @@ const vec3 COLORS[3] = vec3[3](
 out vec3 color;
 
 uniform float scale;
-uniform float angle;
+uniform mat4 rotmat;
 
 void main()
 {
-    mat4 rotmat = mat4(cos(angle), -sin(angle), 0, 0,
-                       sin(angle),  cos(angle), 0, 0,
-                       0,          0,           1, 0,
-                       0,          0,           0, 1);
     vec2 position = VERTICES[gl_VertexID] * scale;
     gl_Position = vec4(position, 0.0, 1.0);
     gl_Position *= rotmat;
@@ -156,9 +152,8 @@ int main() try
 
     glUseProgram(program);
     GLuint scale = glGetUniformLocation(program, "scale");
-    GLuint angle = glGetUniformLocation(program, "angle");
+    GLuint rotmat = glGetUniformLocation(program, "rotmat");
     glUniform1f(scale, 0.5);
-    glUniform1f(angle, time);
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -204,7 +199,15 @@ int main() try
         time += dt;
 
         glUseProgram(program);
-        glUniform1f(angle, time);
+
+        float transform[] = {
+            cos(time), -sin(time), 0, 0,
+            sin(time),  cos(time), 0, 0,
+            0,          0,         1, 0,
+            0,          0,         0, 1
+        };
+
+        glUniformMatrix4fv(rotmat, 1, true, transform);
 
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
