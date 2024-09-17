@@ -45,14 +45,15 @@ const vec3 COLORS[3] = vec3[3](
 
 out vec3 color;
 
-uniform float scale;
-uniform mat4 rotmat;
+uniform mat4 transmat;
+uniform mat4 viewmat;
 
 void main()
 {
-    vec2 position = VERTICES[gl_VertexID] * scale;
+    vec2 position = VERTICES[gl_VertexID];
     gl_Position = vec4(position, 0.0, 1.0);
-    gl_Position *= rotmat;
+    gl_Position = transmat * gl_Position;
+    gl_Position = viewmat * gl_Position;
     color = COLORS[gl_VertexID];
 }
 )";
@@ -151,9 +152,8 @@ int main() try
     float time = 0.0f;
 
     glUseProgram(program);
-    GLuint scale = glGetUniformLocation(program, "scale");
-    GLuint rotmat = glGetUniformLocation(program, "rotmat");
-    glUniform1f(scale, 0.5);
+    GLuint transmat = glGetUniformLocation(program, "transmat");
+    GLuint viewmat = glGetUniformLocation(program, "viewmat");
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -200,15 +200,25 @@ int main() try
 
         glUseProgram(program);
 
-        float x = cos(time) / 4, y = sin(time) / 4;
+        float x = cos(time), y = sin(time);
         float transform[] = {
-            cos(time), -sin(time), 0, 0,
-            sin(time),  cos(time), 0, 0,
+            cos(time), -sin(time), 0, x,
+            sin(time),  cos(time), 0, y,
             0,          0,         1, 0,
-            x,          y,         0, 1
+            0,          0,         0, 1
         };
 
-        glUniformMatrix4fv(rotmat, 1, true, transform);
+        float scale = 0.5;
+        float aspect_ratio = (float)width / height;
+        float view[] = {
+            scale / aspect_ratio, 0,   0, 0,
+            0,   scale, 0, 0,
+            0,   0,   scale, 0,
+            0,   0,   0, 1,
+        };
+
+        glUniformMatrix4fv(transmat, 1, true, transform);
+        glUniformMatrix4fv(viewmat, 1, true, view);
 
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
