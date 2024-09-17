@@ -1,3 +1,4 @@
+#include <SDL2/SDL_keycode.h>
 #ifdef WIN32
 #include <SDL.h>
 #undef main
@@ -31,16 +32,28 @@ void glew_fail(std::string_view message, GLenum error)
 const char vertex_shader_source[] =
 R"(#version 330 core
 
-const vec2 VERTICES[3] = vec2[3](
-    vec2(0.0, 1.0),
-    vec2(-sqrt(0.75), -0.5),
-    vec2( sqrt(0.75), -0.5)
+#define M_PI 3.1415926535897932384626433832795
+
+const vec2 VERTICES[8] = vec2[8](
+    vec2(0.0, 0.0),
+    vec2(cos(0 * M_PI / 3), sin(0 * M_PI / 3)),
+    vec2(cos(1 * M_PI / 3), sin(1 * M_PI / 3)),
+    vec2(cos(2 * M_PI / 3), sin(2 * M_PI / 3)),
+    vec2(cos(3 * M_PI / 3), sin(3 * M_PI / 3)),
+    vec2(cos(4 * M_PI / 3), sin(4 * M_PI / 3)),
+    vec2(cos(5 * M_PI / 3), sin(5 * M_PI / 3)),
+    vec2(cos(0 * M_PI / 3), sin(0 * M_PI / 3))
 );
 
-const vec3 COLORS[3] = vec3[3](
+const vec3 COLORS[8] = vec3[8](
     vec3(1.0, 0.0, 0.0),
     vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0)
+    vec3(0.0, 0.0, 1.0),
+    vec3(1.0, 0.0, 0.0),
+    vec3(0.0, 1.0, 0.0),
+    vec3(0.0, 0.0, 1.0),
+    vec3(0.0, 0.0, 0.0),
+    vec3(0.0, 1.0, 0.0)
 );
 
 out vec3 color;
@@ -81,6 +94,7 @@ GLuint create_shader(GLenum type, const char * source)
     if (status != GL_TRUE)
     {
         GLint info_log_length;
+
         glGetShaderiv(result, GL_INFO_LOG_LENGTH, &info_log_length);
         std::string info_log(info_log_length, '\0');
         glGetShaderInfoLog(result, info_log.size(), nullptr, info_log.data());
@@ -142,8 +156,6 @@ int main() try
     if (!GLEW_VERSION_3_3)
         throw std::runtime_error("OpenGL 3.3 is not supported");
 
-    SDL_GL_SetSwapInterval(0);
-
     glClearColor(0.8f, 0.8f, 1.f, 0.f);
 
     GLuint vertex_shader = create_shader(GL_VERTEX_SHADER, vertex_shader_source);
@@ -163,6 +175,9 @@ int main() try
     std::unordered_map<SDL_Keycode, bool> key_down;
 
     auto last_frame_start = std::chrono::high_resolution_clock::now();
+
+    float dx = 0.0;
+    float dy = 0.0;
 
     bool running = true;
     while (running)
@@ -192,39 +207,53 @@ int main() try
         if (!running)
             break;
 
+
         auto now = std::chrono::high_resolution_clock::now();
-        // float dt = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_frame_start).count();
-        float dt = 0.0016;
+        float dt = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_frame_start).count();
         last_frame_start = now;
 
         glClear(GL_COLOR_BUFFER_BIT);
+
+        float speed = 5.0;
+
+        if (key_down[SDLK_LEFT])
+            dx -= speed * dt;
+
+        if (key_down[SDLK_RIGHT])
+            dx += speed * dt;
+
+        if (key_down[SDLK_UP])
+            dy += speed * dt;
+
+        if (key_down[SDLK_DOWN])
+            dy -= speed * dt;
 
         time += dt * 4;
 
         glUseProgram(program);
 
-        float x = cos(time), y = sin(time);
+        float x = dx + cos(time) / 4, y = dy + sin(time) / 4;
         float transform[] = {
-            cos(time), -sin(time), 0, x,
-            sin(time),  cos(time), 0, y,
-            0,          0,         1, 0,
-            0,          0,         0, 1
+            cos(time * 2),  sin(time * 2), 0, x,
+            -sin(time * 2), cos(time * 2), 0, y,
+            0,          0,                 1, 0,
+            0,          0,                 0, 1
         };
 
         float scale = 0.5;
         float aspect_ratio = (float)width / height;
         float view[] = {
-            scale / aspect_ratio, 0,   0, 0,
-            0,   scale, 0, 0,
-            0,   0,   scale, 0,
-            0,   0,   0, 1,
+            scale / aspect_ratio, 0,     0,     0,
+            0,                    scale, 0,     0,
+            0,                    0,     scale, 0,
+            0,                    0,     0,     1,
         };
 
         glUniformMatrix4fv(transmat, 1, true, transform);
         glUniformMatrix4fv(viewmat, 1, true, view);
 
         glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 8);
 
         SDL_GL_SwapWindow(window);
     }
