@@ -46,11 +46,17 @@ const vec3 COLORS[3] = vec3[3](
 out vec3 color;
 
 uniform float scale;
+uniform float angle;
 
 void main()
 {
+    mat4 rotmat = mat4(cos(angle), -sin(angle), 0, 0,
+                       sin(angle),  cos(angle), 0, 0,
+                       0,          0,           1, 0,
+                       0,          0,           0, 1);
     vec2 position = VERTICES[gl_VertexID] * scale;
     gl_Position = vec4(position, 0.0, 1.0);
+    gl_Position *= rotmat;
     color = COLORS[gl_VertexID];
 }
 )";
@@ -146,9 +152,13 @@ int main() try
 
     GLuint program = create_program(vertex_shader, fragment_shader);
 
+    float time = 0.0f;
+
     glUseProgram(program);
     GLuint scale = glGetUniformLocation(program, "scale");
+    GLuint angle = glGetUniformLocation(program, "angle");
     glUniform1f(scale, 0.5);
+    glUniform1f(angle, time);
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -191,7 +201,10 @@ int main() try
 
         glClear(GL_COLOR_BUFFER_BIT);
 
+        time += dt;
+
         glUseProgram(program);
+        glUniform1f(angle, time);
 
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
