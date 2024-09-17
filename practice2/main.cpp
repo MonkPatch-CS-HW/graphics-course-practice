@@ -142,6 +142,8 @@ int main() try
     if (!GLEW_VERSION_3_3)
         throw std::runtime_error("OpenGL 3.3 is not supported");
 
+    SDL_GL_SetSwapInterval(0);
+
     glClearColor(0.8f, 0.8f, 1.f, 0.f);
 
     GLuint vertex_shader = create_shader(GL_VERTEX_SHADER, vertex_shader_source);
@@ -191,7 +193,8 @@ int main() try
             break;
 
         auto now = std::chrono::high_resolution_clock::now();
-        float dt = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_frame_start).count();
+        // float dt = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_frame_start).count();
+        float dt = 0.0016;
         last_frame_start = now;
 
         glClear(GL_COLOR_BUFFER_BIT);
