@@ -7,29 +7,28 @@
 
 #include <GL/glew.h>
 
-#include <string_view>
-#include <stdexcept>
-#include <iostream>
 #include <chrono>
+#include <iostream>
+#include <stdexcept>
+#include <string_view>
 #include <vector>
 
-std::string to_string(std::string_view str)
-{
+std::string to_string(std::string_view str) {
     return std::string(str.begin(), str.end());
 }
 
-void sdl2_fail(std::string_view message)
-{
+void sdl2_fail(std::string_view message) {
     throw std::runtime_error(to_string(message) + SDL_GetError());
 }
 
-void glew_fail(std::string_view message, GLenum error)
-{
-    throw std::runtime_error(to_string(message) + reinterpret_cast<const char *>(glewGetErrorString(error)));
+void glew_fail(std::string_view message, GLenum error) {
+    throw std::runtime_error(
+        to_string(message) +
+        reinterpret_cast<const char *>(glewGetErrorString(error)));
 }
 
 const char vertex_shader_source[] =
-R"(#version 330 core
+    R"(#version 330 core
 
 uniform mat4 view;
 
@@ -46,7 +45,7 @@ void main()
 )";
 
 const char fragment_shader_source[] =
-R"(#version 330 core
+    R"(#version 330 core
 
 in vec4 color;
 
@@ -58,15 +57,13 @@ void main()
 }
 )";
 
-GLuint create_shader(GLenum type, const char * source)
-{
+GLuint create_shader(GLenum type, const char *source) {
     GLuint result = glCreateShader(type);
     glShaderSource(result, 1, &source, nullptr);
     glCompileShader(result);
     GLint status;
     glGetShaderiv(result, GL_COMPILE_STATUS, &status);
-    if (status != GL_TRUE)
-    {
+    if (status != GL_TRUE) {
         GLint info_log_length;
         glGetShaderiv(result, GL_INFO_LOG_LENGTH, &info_log_length);
         std::string info_log(info_log_length, '\0');
@@ -76,8 +73,7 @@ GLuint create_shader(GLenum type, const char * source)
     return result;
 }
 
-GLuint create_program(GLuint vertex_shader, GLuint fragment_shader)
-{
+GLuint create_program(GLuint vertex_shader, GLuint fragment_shader) {
     GLuint result = glCreateProgram();
     glAttachShader(result, vertex_shader);
     glAttachShader(result, fragment_shader);
@@ -85,8 +81,7 @@ GLuint create_program(GLuint vertex_shader, GLuint fragment_shader)
 
     GLint status;
     glGetProgramiv(result, GL_LINK_STATUS, &status);
-    if (status != GL_TRUE)
-    {
+    if (status != GL_TRUE) {
         GLint info_log_length;
         glGetProgramiv(result, GL_INFO_LOG_LENGTH, &info_log_length);
         std::string info_log(info_log_length, '\0');
@@ -97,20 +92,17 @@ GLuint create_program(GLuint vertex_shader, GLuint fragment_shader)
     return result;
 }
 
-struct vec2
-{
+struct vec2 {
     float x;
     float y;
 };
 
-struct vertex
-{
+struct vertex {
     vec2 position;
     std::uint8_t color[4];
 };
 
-vec2 bezier(std::vector<vertex> const & vertices, float t)
-{
+vec2 bezier(std::vector<vertex> const &vertices, float t) {
     std::vector<vec2> points(vertices.size());
 
     for (std::size_t i = 0; i < vertices.size(); ++i)
@@ -126,22 +118,21 @@ vec2 bezier(std::vector<vertex> const & vertices, float t)
     return points[0];
 }
 
-int main() try
-{
+int main() try {
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
         sdl2_fail("SDL_Init: ");
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+                        SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
-    SDL_Window * window = SDL_CreateWindow("Graphics course practice 3",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        800, 600,
+    SDL_Window *window = SDL_CreateWindow(
+        "Graphics course practice 3", SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED, 800, 600,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
 
     if (!window)
@@ -165,71 +156,78 @@ int main() try
     glClearColor(0.8f, 0.8f, 1.f, 0.f);
 
     auto vertex_shader = create_shader(GL_VERTEX_SHADER, vertex_shader_source);
-    auto fragment_shader = create_shader(GL_FRAGMENT_SHADER, fragment_shader_source);
+    auto fragment_shader =
+        create_shader(GL_FRAGMENT_SHADER, fragment_shader_source);
     auto program = create_program(vertex_shader, fragment_shader);
 
     GLuint view_location = glGetUniformLocation(program, "view");
 
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
+    vertex vertices[] = {
+        (vertex){.position = {0, 0}, .color = {255, 0, 255, 255}},
+        (vertex){.position = {0.5, 0}, .color = {255, 255, 0, 255}},
+        (vertex){.position = {0, 0.5}, .color = {0, 255, 255, 255}},
+    };
+
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    vertex test_vertex;
+    glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex), &test_vertex);
+    std::cout << "coordinates of first vertice: (" << test_vertex.position.x
+              << ", " << test_vertex.position.y << ")" << std::endl;
+
     float time = 0.f;
 
     bool running = true;
-    while (running)
-    {
-        for (SDL_Event event; SDL_PollEvent(&event);) switch (event.type)
-        {
-        case SDL_QUIT:
-            running = false;
-            break;
-        case SDL_WINDOWEVENT: switch (event.window.event)
-            {
-            case SDL_WINDOWEVENT_RESIZED:
-                width = event.window.data1;
-                height = event.window.data2;
-                glViewport(0, 0, width, height);
+    while (running) {
+        for (SDL_Event event; SDL_PollEvent(&event);)
+            switch (event.type) {
+            case SDL_QUIT:
+                running = false;
+                break;
+            case SDL_WINDOWEVENT:
+                switch (event.window.event) {
+                case SDL_WINDOWEVENT_RESIZED:
+                    width = event.window.data1;
+                    height = event.window.data2;
+                    glViewport(0, 0, width, height);
+                    break;
+                }
+                break;
+            case SDL_MOUSEBUTTONDOWN:
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    int mouse_x = event.button.x;
+                    int mouse_y = event.button.y;
+                } else if (event.button.button == SDL_BUTTON_RIGHT) {
+                }
+                break;
+            case SDL_KEYDOWN:
+                if (event.key.keysym.sym == SDLK_LEFT) {
+
+                } else if (event.key.keysym.sym == SDLK_RIGHT) {
+                }
                 break;
             }
-            break;
-        case SDL_MOUSEBUTTONDOWN:
-            if (event.button.button == SDL_BUTTON_LEFT)
-            {
-                int mouse_x = event.button.x;
-                int mouse_y = event.button.y;
-            }
-            else if (event.button.button == SDL_BUTTON_RIGHT)
-            {
-
-            }
-            break;
-        case SDL_KEYDOWN:
-            if (event.key.keysym.sym == SDLK_LEFT)
-            {
-
-            }
-            else if (event.key.keysym.sym == SDLK_RIGHT)
-            {
-
-            }
-            break;
-        }
 
         if (!running)
             break;
 
         auto now = std::chrono::high_resolution_clock::now();
-        float dt = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_frame_start).count();
+        float dt = std::chrono::duration_cast<std::chrono::duration<float>>(
+                       now - last_frame_start)
+                       .count();
         last_frame_start = now;
         time += dt;
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        float view[16] =
-        {
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
+        float view[16] = {
+            1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f,
         };
 
         glUseProgram(program);
@@ -240,9 +238,7 @@ int main() try
 
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
-}
-catch (std::exception const & e)
-{
+} catch (std::exception const &e) {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
 }
