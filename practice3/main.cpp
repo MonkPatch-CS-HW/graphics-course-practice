@@ -180,6 +180,18 @@ int main() try {
     std::cout << "coordinates of first vertice: (" << test_vertex.position.x
               << ", " << test_vertex.position.y << ")" << std::endl;
 
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertex),
+                          (void *)(0));
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(vertex),
+                          (void *)(offsetof(vertex, color)));
+
     float time = 0.f;
 
     bool running = true;
@@ -232,6 +244,8 @@ int main() try {
 
         glUseProgram(program);
         glUniformMatrix4fv(view_location, 1, GL_TRUE, view);
+
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         SDL_GL_SwapWindow(window);
     }
