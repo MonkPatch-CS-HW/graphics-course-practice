@@ -264,6 +264,9 @@ int main() try {
 		glLineWidth(5.f);
         glDrawArrays(GL_LINE_STRIP, 0, vertices.size());
 
+		glPointSize(10);
+        glDrawArrays(GL_POINTS, 0, vertices.size());
+
         SDL_GL_SwapWindow(window);
     }
 
