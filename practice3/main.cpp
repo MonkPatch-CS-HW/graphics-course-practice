@@ -1,3 +1,4 @@
+#include <cmath>
 #ifdef WIN32
 #include <SDL.h>
 #undef main
@@ -165,16 +166,33 @@ int main() try {
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
     std::vector<vertex> vertices = { };
+    std::vector<vertex> smooth_vertices = { };
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
-                 vertices.data(), GL_STATIC_DRAW);
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertex),
+                          (void *)(0));
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(vertex),
+                          (void *)(offsetof(vertex, color)));
+
+	int quality = 4;
+
+    GLuint smooth_vbo;
+    glGenBuffers(1, &smooth_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, smooth_vbo);
+
+    GLuint smooth_vao;
+    glGenVertexArrays(1, &smooth_vao);
+    glBindVertexArray(smooth_vao);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertex),
@@ -227,6 +245,19 @@ int main() try {
 					glBindBuffer(GL_ARRAY_BUFFER, vbo);
 					glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
 								vertices.data(), GL_STATIC_DRAW);
+
+					smooth_vertices.clear();
+					const int total = vertices.size() * quality;
+					for (int i = 0; i < total; ++i) {
+						smooth_vertices.push_back({
+							.position = bezier(vertices, 1.0 * i / total),
+							.color = { 255, 0, 0, 255 },
+						});
+					}
+
+					glBindBuffer(GL_ARRAY_BUFFER, smooth_vbo);
+					glBufferData(GL_ARRAY_BUFFER, smooth_vertices.size() * sizeof(vertex),
+								smooth_vertices.data(), GL_STATIC_DRAW);
 				}
 
                 break;
@@ -266,6 +297,11 @@ int main() try {
 
 		glPointSize(10);
         glDrawArrays(GL_POINTS, 0, vertices.size());
+
+		glBindVertexArray(smooth_vao);
+
+		glLineWidth(5.f);
+        glDrawArrays(GL_LINE_STRIP, 0, smooth_vertices.size());
 
         SDL_GL_SwapWindow(window);
     }
