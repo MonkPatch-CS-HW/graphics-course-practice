@@ -233,13 +233,16 @@ int main() try
         last_frame_start = now;
         time += dt;
 
+		float angle = time;
+		float scale = 0.5f;
+
         glClear(GL_COLOR_BUFFER_BIT);
 
         float model[16] =
         {
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
+            scale * cos(time), 0, scale * sin(time), 0.f,
+            0.f, scale * 1.f, 0.f, 0.f,
+            scale * sin(time), 0.f, scale * -cos(time), 0.f,
             0.f, 0.f, 0.f, 1.f,
         };
 
