@@ -160,7 +160,10 @@ int main() try
         throw std::runtime_error("OpenGL 3.3 is not supported");
 
     glClearColor(0.1f, 0.1f, 0.2f, 0.f);
-	glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+
+    // glCullFace(GL_FRONT);
 
     auto vertex_shader = create_shader(GL_VERTEX_SHADER, vertex_shader_source);
     auto fragment_shader = create_shader(GL_FRAGMENT_SHADER, fragment_shader_source);
@@ -170,13 +173,16 @@ int main() try
     GLuint view_location = glGetUniformLocation(program, "view");
     GLuint projection_location = glGetUniformLocation(program, "projection");
 
+	float speed = 1;
+
     std::string project_root = PROJECT_ROOT;
     obj_data bunny = parse_obj(project_root + "/bunny.obj");
+    float bunny_x = 0, bunny_y = 0;
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(obj_data::vertex) * bunny.vertices.size(), bunny.vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(obj_data::vertex) * bunny.vertices.size(), bunny.vertices.data(), GL_STATIC_DRAW);
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -234,16 +240,30 @@ int main() try
         last_frame_start = now;
         time += dt;
 
+
+		if (button_down[SDLK_LEFT])
+			bunny_x -= speed * dt;
+		
+		if (button_down[SDLK_UP])
+			bunny_y += speed * dt;
+
+		if (button_down[SDLK_RIGHT])
+			bunny_x += speed * dt;
+
+		if (button_down[SDLK_DOWN])
+			bunny_y -= speed * dt;
+
 		float angle = time;
 		float scale = 0.5f;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
         float model[16] =
         {
-            scale * cos(time), 0, scale * sin(time), 0.f,
-            0.f, scale * 1.f, 0.f, 0.f,
-            scale * sin(time), 0.f, scale * -cos(time), 0.f,
+            scale * cos(time), 0, scale * sin(time), bunny_x,
+            0.f, scale * 1.f, 0.f, bunny_y,
+            -scale * sin(time), 0.f, scale * cos(time), 0.f,
             0.f, 0.f, 0.f, 1.f,
         };
 
@@ -272,6 +292,7 @@ int main() try
         glUniformMatrix4fv(model_location, 1, GL_TRUE, model);
         glUniformMatrix4fv(view_location, 1, GL_TRUE, view);
         glUniformMatrix4fv(projection_location, 1, GL_TRUE, projection);
+
 
 		glDrawElements(GL_TRIANGLES, bunny.indices.size(), GL_UNSIGNED_INT, 0);
 
