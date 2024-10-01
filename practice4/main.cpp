@@ -254,12 +254,17 @@ int main() try
             0.f, 0.f, 0.f, 1.f,
         };
 
+        float near = 0.01f, far = 100;
+		float right = near;
+		float top = right * height / width;
+		float left = -right, bottom = -top;
+
         float projection[16] =
         {
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
+            near / right, 0.f, 0.f, 0.f,
+            0.f, near / top, 0.f, 0.f,
+            0.f, 0.f, -(far + near) / (far - near), -2 * far * near / (far - near),
+            0.f, 0.f, -1.f, 0.f,
         };
 
         glUseProgram(program);
