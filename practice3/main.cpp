@@ -164,21 +164,13 @@ int main() try {
 
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
-    vertex vertices[] = {
-        (vertex){.position = {0, 0}, .color = {255, 0, 255, 255}},
-        (vertex){.position = {0.5, 0}, .color = {255, 255, 0, 255}},
-        (vertex){.position = {0, 0.5}, .color = {0, 255, 255, 255}},
-    };
+    std::vector<vertex> vertices = { };
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    vertex test_vertex;
-    glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex), &test_vertex);
-    std::cout << "coordinates of first vertice: (" << test_vertex.position.x
-              << ", " << test_vertex.position.y << ")" << std::endl;
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
+                 vertices.data(), GL_STATIC_DRAW);
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -210,13 +202,35 @@ int main() try {
                     break;
                 }
                 break;
-            case SDL_MOUSEBUTTONDOWN:
+            case SDL_MOUSEBUTTONDOWN: {
+				bool changed = false;
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     int mouse_x = event.button.x;
                     int mouse_y = event.button.y;
+
+					vertices.push_back((vertex){
+						.position = {
+							.x = (float)mouse_x,
+							.y = (float)mouse_y,
+						},
+						.color = { 0, 0, 0, 255 }
+					});
+					changed = true;
                 } else if (event.button.button == SDL_BUTTON_RIGHT) {
+					if (!vertices.empty()) {
+						vertices.pop_back();
+						changed = true;
+					}
                 }
+
+				if (changed) {
+					glBindBuffer(GL_ARRAY_BUFFER, vbo);
+					glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
+								vertices.data(), GL_STATIC_DRAW);
+				}
+
                 break;
+			}
             case SDL_KEYDOWN:
                 if (event.key.keysym.sym == SDLK_LEFT) {
 
@@ -238,14 +252,17 @@ int main() try {
         glClear(GL_COLOR_BUFFER_BIT);
 
         float view[16] = {
-            1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f,
+            2.f / width, 0.f, 0.f, -1.f, 0.f, -2.f / height, 0.f, 1.f,
+            0.f,         0.f, 1.f, 0.f, 0.f, 0.f,          0.f, 1.f,
         };
 
         glUseProgram(program);
         glUniformMatrix4fv(view_location, 1, GL_TRUE, view);
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(vao);
+
+		glLineWidth(5.f);
+        glDrawArrays(GL_LINE_STRIP, 0, vertices.size());
 
         SDL_GL_SwapWindow(window);
     }
