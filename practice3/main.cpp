@@ -206,6 +206,7 @@ int main() try {
 
     bool running = true;
     while (running) {
+		bool changed = false;
         for (SDL_Event event; SDL_PollEvent(&event);)
             switch (event.type) {
             case SDL_QUIT:
@@ -221,7 +222,6 @@ int main() try {
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN: {
-				bool changed = false;
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     int mouse_x = event.button.x;
                     int mouse_y = event.button.y;
@@ -241,34 +241,40 @@ int main() try {
 					}
                 }
 
-				if (changed) {
-					glBindBuffer(GL_ARRAY_BUFFER, vbo);
-					glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
-								vertices.data(), GL_STATIC_DRAW);
-
-					smooth_vertices.clear();
-					const int total = vertices.size() * quality;
-					for (int i = 0; i < total; ++i) {
-						smooth_vertices.push_back({
-							.position = bezier(vertices, 1.0 * i / total),
-							.color = { 255, 0, 0, 255 },
-						});
-					}
-
-					glBindBuffer(GL_ARRAY_BUFFER, smooth_vbo);
-					glBufferData(GL_ARRAY_BUFFER, smooth_vertices.size() * sizeof(vertex),
-								smooth_vertices.data(), GL_STATIC_DRAW);
-				}
-
                 break;
 			}
             case SDL_KEYDOWN:
                 if (event.key.keysym.sym == SDLK_LEFT) {
-
+					if (quality > 1) {
+						quality--;
+						changed = true;
+					}
                 } else if (event.key.keysym.sym == SDLK_RIGHT) {
+					quality++;
+					changed = true;
                 }
                 break;
             }
+		
+
+		if (changed) {
+			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
+						vertices.data(), GL_STATIC_DRAW);
+
+			smooth_vertices.clear();
+			const int total = vertices.size() * quality;
+			for (int i = 0; i < total; ++i) {
+				smooth_vertices.push_back({
+					.position = bezier(vertices, 1.0 * i / total),
+					.color = { 255, 0, 0, 255 },
+				});
+			}
+
+			glBindBuffer(GL_ARRAY_BUFFER, smooth_vbo);
+			glBufferData(GL_ARRAY_BUFFER, smooth_vertices.size() * sizeof(vertex),
+						smooth_vertices.data(), GL_STATIC_DRAW);
+		}
 
         if (!running)
             break;
