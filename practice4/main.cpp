@@ -173,7 +173,7 @@ int main() try
     GLuint view_location = glGetUniformLocation(program, "view");
     GLuint projection_location = glGetUniformLocation(program, "projection");
 
-	float speed = 1;
+	float speed = 2;
 
     std::string project_root = PROJECT_ROOT;
     obj_data bunny = parse_obj(project_root + "/bunny.obj");
@@ -204,6 +204,7 @@ int main() try
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
     float time = 0.f;
+    float angle = 0.f;
 
     std::map<SDL_Keycode, bool> button_down;
 
@@ -240,32 +241,40 @@ int main() try
         last_frame_start = now;
         time += dt;
 
+        double mul = 2;
 
-		if (button_down[SDLK_LEFT])
+		if (button_down[SDLK_LEFT]) {
 			bunny_x -= speed * dt;
+            mul *= 2;
+        }
 		
-		if (button_down[SDLK_UP])
+		if (button_down[SDLK_UP]) {
 			bunny_y += speed * dt;
+            mul *= 2;
+        }
 
-		if (button_down[SDLK_RIGHT])
+		if (button_down[SDLK_RIGHT]) {
 			bunny_x += speed * dt;
+            mul *= 2;
+        }
 
-		if (button_down[SDLK_DOWN])
+		if (button_down[SDLK_DOWN]) {
 			bunny_y -= speed * dt;
+            mul *= 2;
+        }
 
-		float angle = time;
+        angle += dt * speed * mul;
+
 		float scale = 0.5f;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        float near = 0.01f, far = 100;
+		float right = near;
+		float top = right * height / width;
+		float left = -right, bottom = -top;
 
-        float model[16] =
-        {
-            scale * cos(time), 0, scale * sin(time), bunny_x,
-            0.f, scale * 1.f, 0.f, bunny_y,
-            -scale * sin(time), 0.f, scale * cos(time), 0.f,
-            0.f, 0.f, 0.f, 1.f,
-        };
+        glUseProgram(program);
 
         float view[16] =
         {
@@ -275,10 +284,7 @@ int main() try
             0.f, 0.f, 0.f, 1.f,
         };
 
-        float near = 0.01f, far = 100;
-		float right = near;
-		float top = right * height / width;
-		float left = -right, bottom = -top;
+        glUniformMatrix4fv(view_location, 1, GL_TRUE, view);
 
         float projection[16] =
         {
@@ -288,12 +294,39 @@ int main() try
             0.f, 0.f, -1.f, 0.f,
         };
 
-        glUseProgram(program);
-        glUniformMatrix4fv(model_location, 1, GL_TRUE, model);
-        glUniformMatrix4fv(view_location, 1, GL_TRUE, view);
         glUniformMatrix4fv(projection_location, 1, GL_TRUE, projection);
 
+        float model[16] =
+        {
+            scale * cos(angle), 0, scale * sin(angle), bunny_x - 0.8f,
+            0.f, scale * 1.f, 0.f, bunny_y - 0.5f,
+            -scale * sin(angle), 0.f, scale * cos(angle), 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
 
+        glUniformMatrix4fv(model_location, 1, GL_TRUE, model);
+		glDrawElements(GL_TRIANGLES, bunny.indices.size(), GL_UNSIGNED_INT, 0);
+
+        float model2[16] =
+        {
+            scale * cos(angle), scale * sin(angle), 0.f, bunny_x + 0.8f,
+            -scale * sin(angle), scale * cos(angle), 0.f, bunny_y - 0.5f,
+            0.f, 0.f, scale * 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+
+        glUniformMatrix4fv(model_location, 1, GL_TRUE, model2);
+		glDrawElements(GL_TRIANGLES, bunny.indices.size(), GL_UNSIGNED_INT, 0);
+
+        float model3[16] =
+        {
+            scale * 1.f, 0.f, 0.f, bunny_x,
+            0.f, scale * cos(angle), scale * sin(angle), bunny_y + 0.8f,
+            0.f, -scale * sin(angle), scale * cos(angle), 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+
+        glUniformMatrix4fv(model_location, 1, GL_TRUE, model3);
 		glDrawElements(GL_TRIANGLES, bunny.indices.size(), GL_UNSIGNED_INT, 0);
 
         SDL_GL_SwapWindow(window);
