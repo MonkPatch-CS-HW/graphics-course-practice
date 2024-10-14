@@ -109,10 +109,18 @@ void sq_mesh(std::vector<vec2> &mesh, int n) {
     float xstep = 2.0 / steps;
     float ystep = xstep * tan(M_PI / 3);
 
+    size_t colsteps = steps;
+    size_t rowsteps = steps * xstep / ystep;
+
+    float offset = 2 - rowsteps * ystep;
+
+    float xstart = -1;
+    float ystart = -1 + offset / 2;
+
     // first two rows of points
-    for (int r = 0; r <= steps * xstep / ystep; r++)
-        for (int c = r % 2; c <= steps; c += 2)
-            mesh.push_back({-1 + c * xstep, -1 + r * ystep});
+    for (int r = 0; r <= rowsteps; r++)
+        for (int c = r % 2; c <= colsteps; c += 2)
+            mesh.push_back({xstart + c * xstep, ystart + r * ystep});
 }
 
 int main() try {
