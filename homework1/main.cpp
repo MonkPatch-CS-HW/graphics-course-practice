@@ -35,14 +35,14 @@ const char vertex_shader_source[] =
 uniform mat4 view;
 
 layout (location = 0) in vec2 in_position;
-layout (location = 1) in vec4 in_color;
+layout (location = 1) in float in_value;
 
 out vec4 color;
 
 void main()
 {
     gl_Position = view * vec4(in_position, 0.0, 1.0);
-    color = in_color;
+    color = vec4(in_value, in_value, in_value, 1.0);
 }
 )";
 
@@ -104,23 +104,36 @@ struct vertex {
     std::uint8_t color[4];
 };
 
-void sq_mesh(std::vector<vec2> &mesh, int n) {
-    size_t steps = n * 2;
-    float xstep = 2.0 / steps;
-    float ystep = xstep * tan(M_PI / 3);
+void sq_mesh(std::vector<vec2> &mesh, int cols, int &rows) {
+    float xstep = 2.0 / cols;
+    float ystep = xstep / 2 * tan(M_PI / 3);
 
-    size_t colsteps = steps;
-    size_t rowsteps = steps * xstep / ystep;
+    rows = cols * xstep / ystep;
 
-    float offset = 2 - rowsteps * ystep;
+    float xsize = (cols - 1) * xstep + 0.5 * xstep;
+    float ysize = (rows - 1) * ystep;
 
-    float xstart = -1;
-    float ystart = -1 + offset / 2;
+    float xoffset = (2 - xsize) / 2;
+    float yoffset = (2 - ysize) / 2;
 
-    // first two rows of points
-    for (int r = 0; r <= rowsteps; r++)
-        for (int c = r % 2; c <= colsteps; c += 2)
-            mesh.push_back({xstart + c * xstep, ystart + r * ystep});
+    float xstart = -1 + xoffset;
+    float ystart = -1 + yoffset;
+
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            mesh.push_back({xstart + c * xstep + 0.5f * (r % 2) * xstep,
+                            ystart + r * ystep});
+        }
+    }
+}
+
+void fill_values(std::vector<vec2> &mesh, std::vector<float> &values) {
+    values.resize(mesh.size());
+
+    for (int i = 0; i < mesh.size(); i++) {
+        values[i] =
+            cos(mesh[i].x * 10) + sin(mesh[i].y * 10) * cos(mesh[i].x * 2);
+    }
 }
 
 int main() try {
@@ -170,13 +183,11 @@ int main() try {
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
     std::vector<vec2> vertices = {};
+    std::vector<float> values = {};
 
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
-                 vertices.data(), GL_STATIC_DRAW);
+    GLuint vbo_vertices;
+    glGenBuffers(1, &vbo_vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -185,7 +196,15 @@ int main() try {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vec2), (void *)(0));
 
-    int quality = 4;
+    GLuint vbo_values;
+    glGenBuffers(1, &vbo_values);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_values);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void *)(0));
+
+    int cols = 4;
+    int rows;
     bool first_time = true;
 
     float time = 0.f;
@@ -224,12 +243,12 @@ int main() try {
             }
             case SDL_KEYDOWN:
                 if (event.key.keysym.sym == SDLK_LEFT) {
-                    if (quality > 1) {
-                        quality--;
+                    if (cols > 1) {
+                        cols--;
                         changed = true;
                     }
                 } else if (event.key.keysym.sym == SDLK_RIGHT) {
-                    quality++;
+                    cols++;
                     changed = true;
                 }
                 break;
@@ -239,11 +258,17 @@ int main() try {
             first_time = false;
 
             vertices.clear();
-            sq_mesh(vertices, quality);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            sq_mesh(vertices, cols, rows);
+            fill_values(vertices, values);
+            glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
 
-            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
+            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec2),
                          vertices.data(), GL_STATIC_DRAW);
+
+            glBindBuffer(GL_ARRAY_BUFFER, vbo_values);
+
+            glBufferData(GL_ARRAY_BUFFER, values.size() * sizeof(float),
+                         values.data(), GL_STATIC_DRAW);
         }
 
         if (!running)
