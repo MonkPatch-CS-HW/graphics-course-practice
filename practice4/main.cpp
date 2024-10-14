@@ -1,3 +1,5 @@
+#include <cstddef>
+#include <cstdint>
 #ifdef WIN32
 #include <SDL.h>
 #undef main
@@ -158,6 +160,10 @@ int main() try
         throw std::runtime_error("OpenGL 3.3 is not supported");
 
     glClearColor(0.1f, 0.1f, 0.2f, 0.f);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+
+    // glCullFace(GL_FRONT);
 
     auto vertex_shader = create_shader(GL_VERTEX_SHADER, vertex_shader_source);
     auto fragment_shader = create_shader(GL_FRAGMENT_SHADER, fragment_shader_source);
@@ -167,12 +173,38 @@ int main() try
     GLuint view_location = glGetUniformLocation(program, "view");
     GLuint projection_location = glGetUniformLocation(program, "projection");
 
+	float speed = 2;
+
     std::string project_root = PROJECT_ROOT;
     obj_data bunny = parse_obj(project_root + "/bunny.obj");
+    float bunny_x = 0, bunny_y = 0;
+
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(obj_data::vertex) * bunny.vertices.size(), bunny.vertices.data(), GL_STATIC_DRAW);
+
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(obj_data::vertex),
+                          (void *)(offsetof(obj_data::vertex, position)));
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(obj_data::vertex),
+                          (void *)(offsetof(obj_data::vertex, normal)));
+
+    GLuint ebo;
+    glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(std::uint32_t) * bunny.indices.size(), bunny.indices.data(), GL_STATIC_DRAW);
 
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
     float time = 0.f;
+    float angle = 0.f;
 
     std::map<SDL_Keycode, bool> button_down;
 
@@ -209,36 +241,93 @@ int main() try
         last_frame_start = now;
         time += dt;
 
-        glClear(GL_COLOR_BUFFER_BIT);
+        double mul = 2;
 
-        float model[16] =
-        {
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
-        };
+		if (button_down[SDLK_LEFT]) {
+			bunny_x -= speed * dt;
+            mul *= 2;
+        }
+		
+		if (button_down[SDLK_UP]) {
+			bunny_y += speed * dt;
+            mul *= 2;
+        }
+
+		if (button_down[SDLK_RIGHT]) {
+			bunny_x += speed * dt;
+            mul *= 2;
+        }
+
+		if (button_down[SDLK_DOWN]) {
+			bunny_y -= speed * dt;
+            mul *= 2;
+        }
+
+        angle += dt * speed * mul;
+
+		float scale = 0.5f;
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        float near = 0.01f, far = 100;
+		float right = near;
+		float top = right * height / width;
+		float left = -right, bottom = -top;
+
+        glUseProgram(program);
 
         float view[16] =
         {
             1.f, 0.f, 0.f, 0.f,
             0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 1.f, -2.f,
             0.f, 0.f, 0.f, 1.f,
         };
+
+        glUniformMatrix4fv(view_location, 1, GL_TRUE, view);
 
         float projection[16] =
         {
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
+            near / right, 0.f, 0.f, 0.f,
+            0.f, near / top, 0.f, 0.f,
+            0.f, 0.f, -(far + near) / (far - near), -2 * far * near / (far - near),
+            0.f, 0.f, -1.f, 0.f,
+        };
+
+        glUniformMatrix4fv(projection_location, 1, GL_TRUE, projection);
+
+        float model[16] =
+        {
+            scale * cos(angle), 0, scale * sin(angle), bunny_x - 0.8f,
+            0.f, scale * 1.f, 0.f, bunny_y - 0.5f,
+            -scale * sin(angle), 0.f, scale * cos(angle), 0.f,
             0.f, 0.f, 0.f, 1.f,
         };
 
-        glUseProgram(program);
         glUniformMatrix4fv(model_location, 1, GL_TRUE, model);
-        glUniformMatrix4fv(view_location, 1, GL_TRUE, view);
-        glUniformMatrix4fv(projection_location, 1, GL_TRUE, projection);
+		glDrawElements(GL_TRIANGLES, bunny.indices.size(), GL_UNSIGNED_INT, 0);
+
+        float model2[16] =
+        {
+            scale * cos(angle), scale * sin(angle), 0.f, bunny_x + 0.8f,
+            -scale * sin(angle), scale * cos(angle), 0.f, bunny_y - 0.5f,
+            0.f, 0.f, scale * 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+
+        glUniformMatrix4fv(model_location, 1, GL_TRUE, model2);
+		glDrawElements(GL_TRIANGLES, bunny.indices.size(), GL_UNSIGNED_INT, 0);
+
+        float model3[16] =
+        {
+            scale * 1.f, 0.f, 0.f, bunny_x,
+            0.f, scale * cos(angle), scale * sin(angle), bunny_y + 0.8f,
+            0.f, -scale * sin(angle), scale * cos(angle), 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+
+        glUniformMatrix4fv(model_location, 1, GL_TRUE, model3);
+		glDrawElements(GL_TRIANGLES, bunny.indices.size(), GL_UNSIGNED_INT, 0);
 
         SDL_GL_SwapWindow(window);
     }
