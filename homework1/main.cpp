@@ -104,22 +104,6 @@ struct vertex {
     std::uint8_t color[4];
 };
 
-vec2 bezier(std::vector<vertex> const &vertices, float t) {
-    std::vector<vec2> points(vertices.size());
-
-    for (std::size_t i = 0; i < vertices.size(); ++i)
-        points[i] = vertices[i].position;
-
-    // De Casteljau's algorithm
-    for (std::size_t k = 0; k + 1 < vertices.size(); ++k) {
-        for (std::size_t i = 0; i + k + 1 < vertices.size(); ++i) {
-            points[i].x = points[i].x * (1.f - t) + points[i + 1].x * t;
-            points[i].y = points[i].y * (1.f - t) + points[i + 1].y * t;
-        }
-    }
-    return points[0];
-}
-
 void sq_mesh(std::vector<vec2> &mesh, int n) {
     size_t steps = n * 2;
     float xstep = 2.0 / steps;
