@@ -1,3 +1,4 @@
+#include <SDL2/SDL_events.h>
 #include <cmath>
 #ifdef WIN32
 #include <SDL.h>
@@ -119,6 +120,17 @@ vec2 bezier(std::vector<vertex> const &vertices, float t) {
     return points[0];
 }
 
+void sq_mesh(std::vector<vec2> &mesh, int n) {
+    size_t steps = n * 2;
+    float xstep = 2.0 / steps;
+    float ystep = xstep * tan(M_PI / 3);
+
+    // first two rows of points
+    for (int r = 0; r <= steps * xstep / ystep; r++)
+        for (int c = r % 2; c <= steps; c += 2)
+            mesh.push_back({-1 + c * xstep, -1 + r * ystep});
+}
+
 int main() try {
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
         sdl2_fail("SDL_Init: ");
@@ -165,42 +177,24 @@ int main() try {
 
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
-    std::vector<vertex> vertices = {};
-    std::vector<vertex> smooth_vertices = {};
+    std::vector<vec2> vertices = {};
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
+                 vertices.data(), GL_STATIC_DRAW);
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertex),
-                          (void *)(0));
-
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(vertex),
-                          (void *)(offsetof(vertex, color)));
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vec2), (void *)(0));
 
     int quality = 4;
-
-    GLuint smooth_vbo;
-    glGenBuffers(1, &smooth_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, smooth_vbo);
-
-    GLuint smooth_vao;
-    glGenVertexArrays(1, &smooth_vao);
-    glBindVertexArray(smooth_vao);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertex),
-                          (void *)(0));
-
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(vertex),
-                          (void *)(offsetof(vertex, color)));
+    bool first_time = true;
 
     float time = 0.f;
 
@@ -226,12 +220,6 @@ int main() try {
                     int mouse_x = event.button.x;
                     int mouse_y = event.button.y;
 
-                    vertices.push_back((vertex){.position =
-                                                    {
-                                                        .x = (float)mouse_x,
-                                                        .y = (float)mouse_y,
-                                                    },
-                                                .color = {0, 0, 0, 255}});
                     changed = true;
                 } else if (event.button.button == SDL_BUTTON_RIGHT) {
                     if (!vertices.empty()) {
@@ -255,26 +243,15 @@ int main() try {
                 break;
             }
 
-        if (changed) {
+        if (changed || first_time) {
+            first_time = false;
+
+            vertices.clear();
+            sq_mesh(vertices, quality);
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
             glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
                          vertices.data(), GL_STATIC_DRAW);
-
-            smooth_vertices.clear();
-            const int total = vertices.size() * quality;
-            if (total != 0) {
-                for (int i = 0; i <= total; ++i) {
-                    smooth_vertices.push_back({
-                        .position = bezier(vertices, 1.0 * i / total),
-                        .color = {255, 0, 0, 255},
-                    });
-                }
-            }
-
-            glBindBuffer(GL_ARRAY_BUFFER, smooth_vbo);
-            glBufferData(GL_ARRAY_BUFFER,
-                         smooth_vertices.size() * sizeof(vertex),
-                         smooth_vertices.data(), GL_STATIC_DRAW);
         }
 
         if (!running)
@@ -289,9 +266,12 @@ int main() try {
 
         glClear(GL_COLOR_BUFFER_BIT);
 
+        float factorw = (float)height / std::max(width, height);
+        float factorh = (float)width / std::max(width, height);
+
         float view[16] = {
-            2.f / width, 0.f, 0.f, -1.f, 0.f, -2.f / height, 0.f, 1.f,
-            0.f,         0.f, 1.f, 0.f,  0.f, 0.f,           0.f, 1.f,
+            factorw, 0.f, 0.f, 0.f, 0.f, factorh, 0.f, 0.f,
+            0.f,     0.f, 1.f, 0.f, 0.f, 0.f,     0.f, 1.f,
         };
 
         glUseProgram(program);
@@ -299,16 +279,8 @@ int main() try {
 
         glBindVertexArray(vao);
 
-        glLineWidth(5.f);
-        glDrawArrays(GL_LINE_STRIP, 0, vertices.size());
-
         glPointSize(10);
         glDrawArrays(GL_POINTS, 0, vertices.size());
-
-        glBindVertexArray(smooth_vao);
-
-        glLineWidth(5.f);
-        glDrawArrays(GL_LINE_STRIP, 0, smooth_vertices.size());
 
         SDL_GL_SwapWindow(window);
     }
