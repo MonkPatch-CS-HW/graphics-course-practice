@@ -37,13 +37,61 @@ uniform mat4 view;
 
 layout (location = 0) in vec2 in_position;
 layout (location = 1) in float in_value;
+uniform bool is_iso;
 
 out vec4 color;
+
+float hue2rgb(float f1, float f2, float hue) {
+    if (hue < 0.0)
+        hue += 1.0;
+    else if (hue > 1.0)
+        hue -= 1.0;
+    float res;
+    if ((6.0 * hue) < 1.0)
+        res = f1 + (f2 - f1) * 6.0 * hue;
+    else if ((2.0 * hue) < 1.0)
+        res = f2;
+    else if ((3.0 * hue) < 2.0)
+        res = f1 + (f2 - f1) * ((2.0 / 3.0) - hue) * 6.0;
+    else
+        res = f1;
+    return res;
+}
+
+vec3 hsl2rgb(vec3 hsl) {
+    vec3 rgb;
+    
+    if (hsl.y == 0.0) {
+        rgb = vec3(hsl.z); // Luminance
+    } else {
+        float f2;
+        
+        if (hsl.z < 0.5)
+            f2 = hsl.z * (1.0 + hsl.y);
+        else
+            f2 = hsl.z + hsl.y - hsl.y * hsl.z;
+            
+        float f1 = 2.0 * hsl.z - f2;
+        
+        rgb.r = hue2rgb(f1, f2, hsl.x + (1.0/3.0));
+        rgb.g = hue2rgb(f1, f2, hsl.x);
+        rgb.b = hue2rgb(f1, f2, hsl.x - (1.0/3.0));
+    }   
+    return rgb;
+}
+
+vec3 hsl2rgb(float h, float s, float l) {
+    return hsl2rgb(vec3(h, s, l));
+}
 
 void main()
 {
     gl_Position = view * vec4(in_position, 0.0, 1.0);
-    color = vec4(in_value, in_value, in_value, 1.0);
+    if (is_iso) {
+        color = vec4(1.0, 1.0, 1.0, 1.0);
+    } else {
+        color = vec4(hsl2rgb(in_value, 1, in_value), 1.0);
+    }
 }
 )";
 
@@ -284,13 +332,11 @@ void fill_values(std::vector<vec2> &mesh, std::vector<float> &values,
     minv = INFINITY;
 
     for (ball_t &ball : balls) {
-        float speed = 0.00005f; // Speed of the ball
-        ball.x +=
-            speed * ball.c *
-            cos(delta * ball.c); // Using color value to alter the trajectory
-        ball.y +=
-            speed * ball.c *
-            sin(delta * ball.c); // Using color value to alter the trajectory
+        float speed = delta * 0.1f; // Speed of the ball
+        ball.x += speed * ball.c *
+                  cos(ball.c); // Using color value to alter the trajectory
+        ball.y += speed * ball.c *
+                  sin(ball.c); // Using color value to alter the trajectory
 
         if (ball.x > 2.0)
             ball.x = -2.0;
@@ -372,6 +418,7 @@ int main() try {
     auto program = create_program(vertex_shader, fragment_shader);
 
     GLuint view_location = glGetUniformLocation(program, "view");
+    GLuint is_iso_location = glGetUniformLocation(program, "is_iso");
 
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
@@ -523,6 +570,7 @@ int main() try {
         glUniformMatrix4fv(view_location, 1, GL_TRUE, view);
 
         glBindVertexArray(vao);
+        glUniform1i(is_iso_location, false);
 
         fill_values(vertices, values, dt, minv, maxv);
         glBindBuffer(GL_ARRAY_BUFFER, vbo_values);
@@ -540,6 +588,7 @@ int main() try {
                         rows, iso_values);
 
         glBindVertexArray(vao_iso);
+        glUniform1i(is_iso_location, true);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo_iso_points);
         glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(vec2),
