@@ -383,9 +383,16 @@ int main() try {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void *)(0));
 
+    GLuint vao_iso;
+    glGenVertexArrays(1, &vao_iso);
+    glBindVertexArray(vao_iso);
+
     GLuint vbo_iso_points;
     glGenBuffers(1, &vbo_iso_points);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_iso_points);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vec2), (void *)(0));
 
     GLuint ebo;
     glGenBuffers(1, &ebo);
@@ -494,10 +501,6 @@ int main() try {
 
         glPointSize(10);
 
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vec2),
-                              (void *)(0));
-
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
@@ -505,6 +508,8 @@ int main() try {
         point_indices.clear();
         fill_iso_points(vertices, values, indices, points, point_indices, cols,
                         rows, 0.5f);
+
+        glBindVertexArray(vao_iso);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo_iso_points);
         glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(vec2),
@@ -515,12 +520,7 @@ int main() try {
                      point_indices.size() * sizeof(uint32_t),
                      point_indices.data(), GL_STATIC_DRAW);
 
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_iso_points);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vec2),
-                              (void *)(0));
-
         glLineWidth(5.f);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_points);
         glDrawElements(GL_LINES, point_indices.size(), GL_UNSIGNED_INT, 0);
 
         SDL_GL_SwapWindow(window);
