@@ -208,18 +208,19 @@ typedef struct ball {
     float r;
     float x;
     float y;
+    float f;
 } ball_t;
 
-ball_t balls[] = {(ball){.c = -0.8, .r = 0.4, .x = 0.8, .y = -0.2},
-                  (ball){.c = -0.4, .r = 0.6, .x = -0.5, .y = 0.7},
-                  (ball){.c = 1, .r = 0.2, .x = 0.1, .y = -0.9},
-                  (ball){.c = 1, .r = 0.9, .x = -0.3, .y = 0.3},
-                  (ball){.c = -2, .r = 0.5, .x = 0.6, .y = 0.4},
-                  (ball){.c = 1.2, .r = 0.3, .x = 0.0, .y = -0.5},
-                  (ball){.c = 1.5, .r = 0.7, .x = -0.8, .y = 0.1},
-                  (ball){.c = -0.3, .r = 0.1, .x = 0.4, .y = -0.6},
-                  (ball){.c = 0.4, .r = 0.8, .x = -0.1, .y = 0.9},
-                  (ball){.c = -0.9, .r = 0.4, .x = 0.2, .y = -0.3}};
+ball_t balls[] = {(ball){.c = 0.8, .r = 1, .x = 0.8, .y = -0.2, .f = -1},
+                  (ball){.c = 0.9, .r = 0.6, .x = -0.5, .y = 0.7, .f = -1},
+                  (ball){.c = 0.7, .r = 0.8, .x = 0.1, .y = -0.9, .f = 1},
+                  (ball){.c = 0.8, .r = 0.9, .x = -0.3, .y = 0.3, .f = 1},
+                  (ball){.c = -0.9, .r = 0.5, .x = 0.6, .y = 0.4, .f = -1},
+                  (ball){.c = -0.7, .r = 0.8, .x = 0.0, .y = -0.5, .f = -1},
+                  (ball){.c = -0.8, .r = 0.7, .x = -0.8, .y = 0.1, .f = 1},
+                  (ball){.c = 0.9, .r = 0.8, .x = 0.4, .y = -0.6, .f = 1},
+                  (ball){.c = 0.7, .r = 0.8, .x = -0.1, .y = 0.9, .f = -1},
+                  (ball){.c = -0.8, .r = 0.6, .x = 0.2, .y = -0.3, .f = 1}};
 
 int edge_index(int i, int j, int cols, int rows) {
     int ri = i / cols;
@@ -326,26 +327,25 @@ void fill_iso_points(std::vector<vec2> &mesh, std::vector<float> &values,
 }
 
 void fill_values(std::vector<vec2> &mesh, std::vector<float> &values,
-                 float delta, float &minv, float &maxv) {
+                 float delta, float time, float &minv, float &maxv) {
     values.resize(mesh.size());
     maxv = -INFINITY;
     minv = INFINITY;
 
     for (ball_t &ball : balls) {
         float speed = delta * 0.1f; // Speed of the ball
-        ball.x += speed * ball.c *
-                  cos(ball.c); // Using color value to alter the trajectory
-        ball.y += speed * ball.c *
-                  sin(ball.c); // Using color value to alter the trajectory
+        ball.x += speed * 10 * ball.c *
+                  cos(ball.c * ball.c * ball.y * 
+                      time); // Using color value to alter the trajectory
+        ball.y += ball.f * ball.c * speed *
+                  (2 + sin(ball.c *
+                           time)); // Using color value to alter the trajectory
+        ball.x *= (1 - speed);
 
-        if (ball.x > 2.0)
-            ball.x = -2.0;
-        if (ball.x < -2.0)
-            ball.x = 2.0;
         if (ball.y > 2.0)
-            ball.y = -2.0;
+            ball.f = -1;
         if (ball.y < -2.0)
-            ball.y = 2.0;
+            ball.f = 1;
     }
 
     for (int i = 0; i < mesh.size(); i++) {
@@ -466,9 +466,9 @@ int main() try {
     glGenBuffers(1, &ebo_points);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_points);
 
-    int cols = 10;
+    int cols = 64;
     int rows;
-    int isos = 10;
+    int isos = 5;
     bool first_time = true;
 
     float time = 0.f;
@@ -572,7 +572,7 @@ int main() try {
         glBindVertexArray(vao);
         glUniform1i(is_iso_location, false);
 
-        fill_values(vertices, values, dt, minv, maxv);
+        fill_values(vertices, values, dt, time, minv, maxv);
         glBindBuffer(GL_ARRAY_BUFFER, vbo_values);
         glBufferData(GL_ARRAY_BUFFER, values.size() * sizeof(float),
                      values.data(), GL_STATIC_DRAW);
