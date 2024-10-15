@@ -228,36 +228,52 @@ vec2 find_point(vec2 a, vec2 b, float va, float vb, float iso_value) {
 void fill_iso_points(std::vector<vec2> &mesh, std::vector<float> &values,
                      std::vector<uint32_t> &indices, std::vector<vec2> &points,
                      std::vector<uint32_t> &point_indices, int cols, int rows,
-                     float iso_value) {
-    points.resize(6 * cols * rows, {.x = INFINITY, .y = INFINITY});
+                     std::vector<float> iso_values) {
+    int layer_size = 6 * cols * rows;
+    points.resize(iso_values.size() * layer_size,
+                  {.x = INFINITY, .y = INFINITY});
 
-    for (int i = 0; i < indices.size(); i += 3) {
-        int ia = indices[i];
-        float va = values[ia];
-        vec2 a = mesh[ia];
+    for (int k = 0; k < iso_values.size(); k++) {
+        float iso_value = iso_values[k];
 
-        int ib = indices[i + 1];
-        float vb = values[ib];
-        vec2 b = mesh[ib];
+        for (int i = 0; i < indices.size(); i += 3) {
+            int ia = indices[i];
+            float va = values[ia];
+            vec2 a = mesh[ia];
 
-        int ic = indices[i + 2];
-        float vc = values[ic];
-        vec2 c = mesh[ic];
+            int ib = indices[i + 1];
+            float vb = values[ib];
+            vec2 b = mesh[ib];
 
-        int iab = edge_index(ia, ib, cols, rows);
-        int ibc = edge_index(ib, ic, cols, rows);
-        int ica = edge_index(ic, ia, cols, rows);
+            int ic = indices[i + 2];
+            float vc = values[ic];
+            vec2 c = mesh[ic];
 
-        points[iab] = find_point(a, b, va, vb, iso_value);
-        points[ibc] = find_point(b, c, vb, vc, iso_value);
-        points[ica] = find_point(c, a, vc, va, iso_value);
+            int iab = k * layer_size + edge_index(ia, ib, cols, rows);
+            int ibc = k * layer_size + edge_index(ib, ic, cols, rows);
+            int ica = k * layer_size + edge_index(ic, ia, cols, rows);
 
-        if (points[iab].valid())
-            point_indices.push_back(iab);
-        if (points[ibc].valid())
-            point_indices.push_back(ibc);
-        if (points[ica].valid())
-            point_indices.push_back(ica);
+            points[iab] = find_point(a, b, va, vb, iso_value);
+            points[ibc] = find_point(b, c, vb, vc, iso_value);
+            points[ica] = find_point(c, a, vc, va, iso_value);
+
+            int count = 0;
+            if (points[iab].valid())
+                count++;
+            if (points[ibc].valid())
+                count++;
+            if (points[ica].valid())
+                count++;
+
+            if (count == 2) {
+                if (points[iab].valid())
+                    point_indices.push_back(iab);
+                if (points[ibc].valid())
+                    point_indices.push_back(ibc);
+                if (points[ica].valid())
+                    point_indices.push_back(ica);
+            }
+        }
     }
 }
 
@@ -310,7 +326,7 @@ void fill_iso_values(int isos, std::vector<float> &iso_values) {
     iso_values.resize(isos);
 
     for (int i = 0; i < isos; i++)
-        iso_values[i] = -1.f + 2.f / isos;
+        iso_values[i] = (float)(i + 1) / (isos + 1);
 }
 
 int main() try {
@@ -364,6 +380,7 @@ int main() try {
     std::vector<vec2> points = {};
     std::vector<uint32_t> point_indices = {};
     std::vector<uint32_t> indices = {};
+    std::vector<float> iso_values = {};
 
     GLuint vbo_vertices;
     glGenBuffers(1, &vbo_vertices);
@@ -412,7 +429,7 @@ int main() try {
 
     bool running = true;
     while (running) {
-        bool mesh_changed = false;
+        bool mesh_changed = false, isos_changed = false;
         for (SDL_Event event; SDL_PollEvent(&event);)
             switch (event.type) {
             case SDL_QUIT:
@@ -447,13 +464,19 @@ int main() try {
                 } else if (event.key.keysym.sym == SDLK_RIGHT) {
                     cols++;
                     mesh_changed = true;
+                } else if (event.key.keysym.sym == SDLK_DOWN) {
+                    if (isos > 1) {
+                        isos--;
+                        isos_changed = true;
+                    }
+                } else if (event.key.keysym.sym == SDLK_UP) {
+                    isos++;
+                    isos_changed = true;
                 }
                 break;
             }
 
         if (mesh_changed || first_time) {
-            first_time = false;
-
             vertices.clear();
             indices.clear();
             sq_mesh(vertices, cols, rows);
@@ -468,6 +491,13 @@ int main() try {
                          indices.size() * sizeof(uint32_t), indices.data(),
                          GL_STATIC_DRAW);
         }
+
+        if (isos_changed || first_time) {
+            iso_values.clear();
+            fill_iso_values(isos, iso_values);
+        }
+
+        first_time = false;
 
         if (!running)
             break;
@@ -507,7 +537,7 @@ int main() try {
         points.clear();
         point_indices.clear();
         fill_iso_points(vertices, values, indices, points, point_indices, cols,
-                        rows, 0.5f);
+                        rows, iso_values);
 
         glBindVertexArray(vao_iso);
 
@@ -520,7 +550,7 @@ int main() try {
                      point_indices.size() * sizeof(uint32_t),
                      point_indices.data(), GL_STATIC_DRAW);
 
-        glLineWidth(5.f);
+        glLineWidth(3.f);
         glDrawElements(GL_LINES, point_indices.size(), GL_UNSIGNED_INT, 0);
 
         SDL_GL_SwapWindow(window);
