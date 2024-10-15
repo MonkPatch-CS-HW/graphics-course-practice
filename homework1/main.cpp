@@ -131,25 +131,36 @@ void sq_mesh(std::vector<vec2> &mesh, int cols, int &rows) {
 void fill_indices(std::vector<uint32_t> &indices, std::vector<vec2> &mesh,
                   int cols, int rows) {
     for (int r = 0; r + 1 < rows; r += 2) {
-        for (int c = 0; c < cols; c++) {
+        for (int c = 0; c + 1 < cols; c++) {
             indices.push_back(r * cols + c);
             indices.push_back((r + 1) * cols + c);
-        }
-        if (r + 2 < rows) {
-            for (int c = cols - 1; c >= 0; c--) {
-                indices.push_back((r + 1) * cols + c);
+            indices.push_back(r * cols + (c + 1));
+
+            indices.push_back((r + 1) * (cols) + (c));
+            indices.push_back((r) * (cols) + (c + 1));
+            indices.push_back((r + 1) * (cols) + (c + 1));
+
+            if (r + 2 < rows) {
                 indices.push_back((r + 2) * cols + c);
+                indices.push_back((r + 1) * cols + c);
+                indices.push_back((r + 2) * cols + (c + 1));
+
+                indices.push_back((r + 1) * (cols) + (c));
+                indices.push_back((r + 2) * (cols) + (c + 1));
+                indices.push_back((r + 1) * (cols) + (c + 1));
             }
         }
     }
 }
 
-void fill_values(std::vector<vec2> &mesh, std::vector<float> &values) {
+void fill_values(std::vector<vec2> &mesh, std::vector<float> &values,
+                 double time) {
     values.resize(mesh.size());
 
     for (int i = 0; i < mesh.size(); i++) {
-        values[i] =
-            cos(mesh[i].x * 10) + sin(mesh[i].y * 10) * cos(mesh[i].x * 2);
+        values[i] = cos(mesh[i].x * 10 * time) +
+                    sin(mesh[i].y * 10) *
+                        cos((mesh[i].x + mesh[i].y * mesh[i].y) * 2 * time);
     }
 }
 
@@ -280,16 +291,11 @@ int main() try {
             vertices.clear();
             indices.clear();
             sq_mesh(vertices, cols, rows);
-            fill_values(vertices, values);
             fill_indices(indices, vertices, cols, rows);
 
             glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
             glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec2),
                          vertices.data(), GL_STATIC_DRAW);
-
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_values);
-            glBufferData(GL_ARRAY_BUFFER, values.size() * sizeof(float),
-                         values.data(), GL_STATIC_DRAW);
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER,
@@ -322,9 +328,14 @@ int main() try {
 
         glBindVertexArray(vao);
 
+        fill_values(vertices, values, time);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_values);
+        glBufferData(GL_ARRAY_BUFFER, values.size() * sizeof(float),
+                     values.data(), GL_STATIC_DRAW);
+
         glPointSize(10);
-        glDrawElements(GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_INT, 0);
-        // glDrawArrays(GL_POINTS, 0, vertices.size());
+
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
         SDL_GL_SwapWindow(window);
     }
