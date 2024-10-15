@@ -98,6 +98,8 @@ GLuint create_program(GLuint vertex_shader, GLuint fragment_shader) {
 struct vec2 {
     float x;
     float y;
+
+    inline bool valid() { return x != INFINITY && y != INFINITY; }
 };
 
 struct vertex {
@@ -170,6 +172,94 @@ ball_t balls[] = {(ball){.c = -0.8, .r = 0.4, .x = 0.8, .y = -0.2},
                   (ball){.c = -0.3, .r = 0.1, .x = 0.4, .y = -0.6},
                   (ball){.c = 0.4, .r = 0.8, .x = -0.1, .y = 0.9},
                   (ball){.c = -0.9, .r = 0.4, .x = 0.2, .y = -0.3}};
+
+int edge_index(int i, int j, int cols, int rows) {
+    int ri = i / cols;
+    int rj = j / cols;
+
+    if (ri > rj)
+        return edge_index(j, i, cols, rows);
+
+    int ci = i % cols;
+    int cj = j % cols;
+
+    int base = ri * cols * 3;
+
+    if (ri == rj) {
+        if (ci + 1 == cj)
+            return base + ci;
+
+        if (cj + 1 == ci)
+            return base + cj;
+
+        return -1;
+    }
+
+    if (ri + 1 == rj) {
+        if (ci == cj)
+            return base + cols + ci * 2;
+
+        if (ri % 2 == 0 && cj + 1 == ci)
+            return base + cols + cj * 2 + 1;
+
+        if (ri % 2 == 1 && ci + 1 == cj)
+            return base + cols + ci * 2 + 1;
+
+        return -1;
+    }
+
+    return -1;
+}
+
+vec2 find_point(vec2 a, vec2 b, float va, float vb, float iso_value) {
+    if (va > vb)
+        return find_point(b, a, vb, va, iso_value);
+
+    if (va >= iso_value || vb <= iso_value)
+        return {.x = INFINITY, .y = INFINITY};
+
+    float part = (iso_value - va) / (vb - va);
+    float x = a.x + part * (b.x - a.x);
+    float y = a.y + part * (b.y - a.y);
+
+    return {.x = x, .y = y};
+}
+
+void fill_iso_points(std::vector<vec2> &mesh, std::vector<float> &values,
+                     std::vector<uint32_t> &indices, std::vector<vec2> &points,
+                     std::vector<uint32_t> &point_indices, int cols, int rows,
+                     float iso_value) {
+    points.resize(6 * cols * rows, {.x = INFINITY, .y = INFINITY});
+
+    for (int i = 0; i < indices.size(); i += 3) {
+        int ia = indices[i];
+        float va = values[ia];
+        vec2 a = mesh[ia];
+
+        int ib = indices[i + 1];
+        float vb = values[ib];
+        vec2 b = mesh[ib];
+
+        int ic = indices[i + 2];
+        float vc = values[ic];
+        vec2 c = mesh[ic];
+
+        int iab = edge_index(ia, ib, cols, rows);
+        int ibc = edge_index(ib, ic, cols, rows);
+        int ica = edge_index(ic, ia, cols, rows);
+
+        points[iab] = find_point(a, b, va, vb, iso_value);
+        points[ibc] = find_point(b, c, vb, vc, iso_value);
+        points[ica] = find_point(c, a, vc, va, iso_value);
+
+        if (points[iab].valid())
+            point_indices.push_back(iab);
+        if (points[ibc].valid())
+            point_indices.push_back(ibc);
+        if (points[ica].valid())
+            point_indices.push_back(ica);
+    }
+}
 
 void fill_values(std::vector<vec2> &mesh, std::vector<float> &values,
                  float delta, float &minv, float &maxv) {
@@ -271,6 +361,8 @@ int main() try {
 
     std::vector<vec2> vertices = {};
     std::vector<float> values = {};
+    std::vector<vec2> points = {};
+    std::vector<uint32_t> point_indices = {};
     std::vector<uint32_t> indices = {};
 
     GLuint vbo_vertices;
@@ -291,11 +383,17 @@ int main() try {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void *)(0));
 
+    GLuint vbo_iso_points;
+    glGenBuffers(1, &vbo_iso_points);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_iso_points);
+
     GLuint ebo;
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * indices.size(),
-                 indices.data(), GL_STATIC_DRAW);
+
+    GLuint ebo_points;
+    glGenBuffers(1, &ebo_points);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_points);
 
     int cols = 10;
     int rows;
@@ -396,7 +494,34 @@ int main() try {
 
         glPointSize(10);
 
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vec2),
+                              (void *)(0));
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+
+        points.clear();
+        point_indices.clear();
+        fill_iso_points(vertices, values, indices, points, point_indices, cols,
+                        rows, 0.5f);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_iso_points);
+        glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(vec2),
+                     points.data(), GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_points);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     point_indices.size() * sizeof(uint32_t),
+                     point_indices.data(), GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_iso_points);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vec2),
+                              (void *)(0));
+
+        glLineWidth(5.f);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_points);
+        glDrawElements(GL_LINES, point_indices.size(), GL_UNSIGNED_INT, 0);
 
         SDL_GL_SwapWindow(window);
     }
