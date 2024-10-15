@@ -1,5 +1,6 @@
 #include <SDL2/SDL_events.h>
 #include <cmath>
+#include <cstdint>
 #ifdef WIN32
 #include <SDL.h>
 #undef main
@@ -127,6 +128,24 @@ void sq_mesh(std::vector<vec2> &mesh, int cols, int &rows) {
     }
 }
 
+void fill_indices(std::vector<uint32_t> &indices, std::vector<vec2> &mesh,
+                  int cols, int rows) {
+    for (int r = 0; r + 1 < rows; r += 2) {
+        for (int c = 0; c < cols; c++) {
+            indices.push_back(r * cols + c);
+            indices.push_back((r + 1) * cols + c);
+        }
+        if (r + 2 < rows) {
+
+            indices.push_back((r + 2) * cols + (cols - 1));
+            for (int c = cols - 2; c >= 0; c--) {
+                indices.push_back((r + 1) * cols + c);
+                indices.push_back((r + 2) * cols + c);
+            }
+        }
+    }
+}
+
 void fill_values(std::vector<vec2> &mesh, std::vector<float> &values) {
     values.resize(mesh.size());
 
@@ -184,6 +203,7 @@ int main() try {
 
     std::vector<vec2> vertices = {};
     std::vector<float> values = {};
+    std::vector<uint32_t> indices = {};
 
     GLuint vbo_vertices;
     glGenBuffers(1, &vbo_vertices);
@@ -202,6 +222,12 @@ int main() try {
 
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void *)(0));
+
+    GLuint ebo;
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * indices.size(),
+                 indices.data(), GL_STATIC_DRAW);
 
     int cols = 4;
     int rows;
@@ -233,10 +259,6 @@ int main() try {
 
                     changed = true;
                 } else if (event.button.button == SDL_BUTTON_RIGHT) {
-                    if (!vertices.empty()) {
-                        vertices.pop_back();
-                        changed = true;
-                    }
                 }
 
                 break;
@@ -258,17 +280,23 @@ int main() try {
             first_time = false;
 
             vertices.clear();
+            indices.clear();
             sq_mesh(vertices, cols, rows);
             fill_values(vertices, values);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
+            fill_indices(indices, vertices, cols, rows);
 
+            glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
             glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec2),
                          vertices.data(), GL_STATIC_DRAW);
 
             glBindBuffer(GL_ARRAY_BUFFER, vbo_values);
-
             glBufferData(GL_ARRAY_BUFFER, values.size() * sizeof(float),
                          values.data(), GL_STATIC_DRAW);
+
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         indices.size() * sizeof(uint32_t), indices.data(),
+                         GL_STATIC_DRAW);
         }
 
         if (!running)
@@ -297,6 +325,7 @@ int main() try {
         glBindVertexArray(vao);
 
         glPointSize(10);
+        glDrawElements(GL_LINE_STRIP, indices.size(), GL_UNSIGNED_INT, 0);
         glDrawArrays(GL_POINTS, 0, vertices.size());
 
         SDL_GL_SwapWindow(window);
