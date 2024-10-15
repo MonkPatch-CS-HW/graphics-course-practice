@@ -144,12 +144,17 @@ void fill_indices(std::vector<uint32_t> &indices, std::vector<vec2> &mesh,
     }
 }
 
-void fill_values(std::vector<vec2> &mesh, std::vector<float> &values) {
+void fill_values(std::vector<vec2> &mesh, std::vector<float> &values,
+                 float &minv, float &maxv) {
     values.resize(mesh.size());
+    maxv = -INFINITY;
+    minv = INFINITY;
 
     for (int i = 0; i < mesh.size(); i++) {
         values[i] =
             cos(mesh[i].x * 10) + sin(mesh[i].y * 10) * cos(mesh[i].x * 2);
+        maxv = std::max(maxv, values[i]);
+        minv = std::min(minv, values[i]);
     }
 }
 
@@ -232,6 +237,7 @@ int main() try {
     bool first_time = true;
 
     float time = 0.f;
+    float minv, maxv;
 
     bool running = true;
     while (running) {
@@ -280,7 +286,7 @@ int main() try {
             vertices.clear();
             indices.clear();
             sq_mesh(vertices, cols, rows);
-            fill_values(vertices, values);
+            fill_values(vertices, values, minv, maxv);
             fill_indices(indices, vertices, cols, rows);
 
             glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
