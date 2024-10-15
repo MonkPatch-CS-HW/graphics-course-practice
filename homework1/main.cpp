@@ -1,6 +1,8 @@
 #include <SDL2/SDL_events.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #ifdef WIN32
 #include <SDL.h>
 #undef main
@@ -208,19 +210,74 @@ typedef struct ball {
     float r;
     float x;
     float y;
-    float f;
+    float dx;
+    float dy;
 } ball_t;
 
-ball_t balls[] = {(ball){.c = 0.8, .r = 1, .x = 0.8, .y = -0.2, .f = -1},
-                  (ball){.c = 0.9, .r = 0.6, .x = -0.5, .y = 0.7, .f = -1},
-                  (ball){.c = 0.7, .r = 0.8, .x = 0.1, .y = -0.9, .f = 1},
-                  (ball){.c = 0.8, .r = 0.9, .x = -0.3, .y = 0.3, .f = 1},
-                  (ball){.c = -0.9, .r = 0.5, .x = 0.6, .y = 0.4, .f = -1},
-                  (ball){.c = -0.7, .r = 0.8, .x = 0.0, .y = -0.5, .f = -1},
-                  (ball){.c = -0.8, .r = 0.7, .x = -0.8, .y = 0.1, .f = 1},
-                  (ball){.c = 0.9, .r = 0.8, .x = 0.4, .y = -0.6, .f = 1},
-                  (ball){.c = 0.7, .r = 0.8, .x = -0.1, .y = 0.9, .f = -1},
-                  (ball){.c = -0.8, .r = 0.6, .x = 0.2, .y = -0.3, .f = 1}};
+class BallsManager {
+  public:
+    std::vector<ball_t> balls;
+
+    BallsManager(int n) {
+        for (int i = 0; i < n; i++) {
+            balls.push_back({
+                .c = (rand() % 20) / 10.f - 1,
+                .r = (rand() % 20) / 10.f - 1,
+                .x = (rand() % 20) / 10.f - 1,
+                .y = (rand() % 20) / 10.f - 1,
+                .dx = (rand() % 20) / 10.f - 1,
+                .dy = (rand() % 20) / 10.f - 1,
+            });
+        }
+    }
+
+    void move(float delta) {
+        for (ball_t &ball : balls) {
+            ball.x += delta * ball.dx;
+            ball.y += delta * ball.dy;
+
+            ball.dx *= (1 - delta);
+            ball.dy *= (1 - delta);
+        }
+    }
+
+    void resolve() {
+        for (int i = 0; i < balls.size(); i++) {
+            ball_t &ball1 = balls[i];
+            for (int j = 0; j < balls.size(); j++) {
+                if (i == j)
+                    continue;
+
+                ball_t &ball2 = balls[j];
+
+                float distx = (ball2.x - ball1.x);
+                float disty = (ball2.y - ball1.y);
+                float dist = pow(pow(distx, 2) + pow(disty, 2), 0.5);
+                float mindist = ball1.r + ball2.r;
+
+                distx = distx / dist / dist;
+                disty = disty / dist / dist;
+
+                ball2.dx += distx;
+                ball2.dy += disty;
+            }
+
+            ball1.dx = std::clamp(ball1.dx, -1000.f, 1000.f);
+            ball1.dy = std::clamp(ball1.dy, -1000.f, 1000.f);
+
+            if (ball1.x > 1 || ball1.x < -1)
+                ball1.dx = -ball1.dx * 2;
+
+            if (ball1.y > 1 || ball1.y < -1)
+                ball1.dy = -ball1.dy * 2;
+        }
+    }
+
+    void update(float delta) {
+        move(delta);
+        resolve();
+    }
+};
 
 int edge_index(int i, int j, int cols, int rows) {
     int ri = i / cols;
@@ -332,26 +389,14 @@ void fill_values(std::vector<vec2> &mesh, std::vector<float> &values,
     maxv = -INFINITY;
     minv = INFINITY;
 
-    for (ball_t &ball : balls) {
-        float speed = delta * 0.1f; // Speed of the ball
-        ball.x += speed * 10 * ball.c *
-                  cos(ball.c * ball.c * ball.y * 
-                      time); // Using color value to alter the trajectory
-        ball.y += ball.f * ball.c * speed *
-                  (2 + sin(ball.c *
-                           time)); // Using color value to alter the trajectory
-        ball.x *= (1 - speed);
+    static BallsManager bm(10);
 
-        if (ball.y > 2.0)
-            ball.f = -1;
-        if (ball.y < -2.0)
-            ball.f = 1;
-    }
+    bm.update(delta / 1000);
 
     for (int i = 0; i < mesh.size(); i++) {
         values[i] = 0;
 
-        for (ball_t ball : balls) {
+        for (ball_t ball : bm.balls) {
             values[i] +=
                 ball.c *
                 std::exp(-((mesh[i].x - ball.x) * (mesh[i].x - ball.x) +
