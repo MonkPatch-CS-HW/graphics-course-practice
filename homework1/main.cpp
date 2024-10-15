@@ -136,9 +136,7 @@ void fill_indices(std::vector<uint32_t> &indices, std::vector<vec2> &mesh,
             indices.push_back((r + 1) * cols + c);
         }
         if (r + 2 < rows) {
-
-            indices.push_back((r + 2) * cols + (cols - 1));
-            for (int c = cols - 2; c >= 0; c--) {
+            for (int c = cols - 1; c >= 0; c--) {
                 indices.push_back((r + 1) * cols + c);
                 indices.push_back((r + 2) * cols + c);
             }
@@ -325,8 +323,8 @@ int main() try {
         glBindVertexArray(vao);
 
         glPointSize(10);
-        glDrawElements(GL_LINE_STRIP, indices.size(), GL_UNSIGNED_INT, 0);
-        glDrawArrays(GL_POINTS, 0, vertices.size());
+        glDrawElements(GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_INT, 0);
+        // glDrawArrays(GL_POINTS, 0, vertices.size());
 
         SDL_GL_SwapWindow(window);
     }
