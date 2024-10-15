@@ -128,34 +128,99 @@ void sq_mesh(std::vector<vec2> &mesh, int cols, int &rows) {
     }
 }
 
-void fill_indices(std::vector<uint32_t> &indices, std::vector<vec2> &mesh,
-                  int cols, int rows) {
+void fill_mesh_indices(std::vector<uint32_t> &indices, std::vector<vec2> &mesh,
+                       int cols, int rows) {
     for (int r = 0; r + 1 < rows; r += 2) {
-        for (int c = 0; c < cols; c++) {
+        for (int c = 0; c + 1 < cols; c++) {
             indices.push_back(r * cols + c);
             indices.push_back((r + 1) * cols + c);
-        }
-        if (r + 2 < rows) {
-            for (int c = cols - 1; c >= 0; c--) {
-                indices.push_back((r + 1) * cols + c);
+            indices.push_back(r * cols + (c + 1));
+
+            indices.push_back((r + 1) * (cols) + (c));
+            indices.push_back((r) * (cols) + (c + 1));
+            indices.push_back((r + 1) * (cols) + (c + 1));
+
+            if (r + 2 < rows) {
                 indices.push_back((r + 2) * cols + c);
+                indices.push_back((r + 1) * cols + c);
+                indices.push_back((r + 2) * cols + (c + 1));
+
+                indices.push_back((r + 1) * (cols) + (c));
+                indices.push_back((r + 2) * (cols) + (c + 1));
+                indices.push_back((r + 1) * (cols) + (c + 1));
             }
         }
     }
 }
 
+typedef struct ball {
+    float c;
+    float r;
+    float x;
+    float y;
+} ball_t;
+
+ball_t balls[] = {(ball){.c = -0.8, .r = 0.4, .x = 0.8, .y = -0.2},
+                  (ball){.c = -0.4, .r = 0.6, .x = -0.5, .y = 0.7},
+                  (ball){.c = 1, .r = 0.2, .x = 0.1, .y = -0.9},
+                  (ball){.c = 1, .r = 0.9, .x = -0.3, .y = 0.3},
+                  (ball){.c = -2, .r = 0.5, .x = 0.6, .y = 0.4},
+                  (ball){.c = 1.2, .r = 0.3, .x = 0.0, .y = -0.5},
+                  (ball){.c = 1.5, .r = 0.7, .x = -0.8, .y = 0.1},
+                  (ball){.c = -0.3, .r = 0.1, .x = 0.4, .y = -0.6},
+                  (ball){.c = 0.4, .r = 0.8, .x = -0.1, .y = 0.9},
+                  (ball){.c = -0.9, .r = 0.4, .x = 0.2, .y = -0.3}};
+
 void fill_values(std::vector<vec2> &mesh, std::vector<float> &values,
-                 float &minv, float &maxv) {
+                 float delta, float &minv, float &maxv) {
     values.resize(mesh.size());
     maxv = -INFINITY;
     minv = INFINITY;
 
+    for (ball_t &ball : balls) {
+        float speed = 0.00005f; // Speed of the ball
+        ball.x +=
+            speed * ball.c *
+            cos(delta * ball.c); // Using color value to alter the trajectory
+        ball.y +=
+            speed * ball.c *
+            sin(delta * ball.c); // Using color value to alter the trajectory
+
+        if (ball.x > 2.0)
+            ball.x = -2.0;
+        if (ball.x < -2.0)
+            ball.x = 2.0;
+        if (ball.y > 2.0)
+            ball.y = -2.0;
+        if (ball.y < -2.0)
+            ball.y = 2.0;
+    }
+
     for (int i = 0; i < mesh.size(); i++) {
-        values[i] =
-            cos(mesh[i].x * 10) + sin(mesh[i].y * 10) * cos(mesh[i].x * 2);
+        values[i] = 0;
+
+        for (ball_t ball : balls) {
+            values[i] +=
+                ball.c *
+                std::exp(-((mesh[i].x - ball.x) * (mesh[i].x - ball.x) +
+                           (mesh[i].y - ball.y) * (mesh[i].y - ball.y)) /
+                         (ball.r * ball.r));
+        }
+
         maxv = std::max(maxv, values[i]);
         minv = std::min(minv, values[i]);
     }
+
+    for (int i = 0; i < mesh.size(); i++) {
+        values[i] = (values[i] - minv) / (maxv - minv);
+    }
+}
+
+void fill_iso_values(int isos, std::vector<float> &iso_values) {
+    iso_values.resize(isos);
+
+    for (int i = 0; i < isos; i++)
+        iso_values[i] = -1.f + 2.f / isos;
 }
 
 int main() try {
@@ -232,8 +297,9 @@ int main() try {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * indices.size(),
                  indices.data(), GL_STATIC_DRAW);
 
-    int cols = 4;
+    int cols = 10;
     int rows;
+    int isos = 10;
     bool first_time = true;
 
     float time = 0.f;
@@ -241,7 +307,7 @@ int main() try {
 
     bool running = true;
     while (running) {
-        bool changed = false;
+        bool mesh_changed = false;
         for (SDL_Event event; SDL_PollEvent(&event);)
             switch (event.type) {
             case SDL_QUIT:
@@ -261,7 +327,7 @@ int main() try {
                     int mouse_x = event.button.x;
                     int mouse_y = event.button.y;
 
-                    changed = true;
+                    mesh_changed = true;
                 } else if (event.button.button == SDL_BUTTON_RIGHT) {
                 }
 
@@ -271,31 +337,26 @@ int main() try {
                 if (event.key.keysym.sym == SDLK_LEFT) {
                     if (cols > 1) {
                         cols--;
-                        changed = true;
+                        mesh_changed = true;
                     }
                 } else if (event.key.keysym.sym == SDLK_RIGHT) {
                     cols++;
-                    changed = true;
+                    mesh_changed = true;
                 }
                 break;
             }
 
-        if (changed || first_time) {
+        if (mesh_changed || first_time) {
             first_time = false;
 
             vertices.clear();
             indices.clear();
             sq_mesh(vertices, cols, rows);
-            fill_values(vertices, values, minv, maxv);
-            fill_indices(indices, vertices, cols, rows);
+            fill_mesh_indices(indices, vertices, cols, rows);
 
             glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
             glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec2),
                          vertices.data(), GL_STATIC_DRAW);
-
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_values);
-            glBufferData(GL_ARRAY_BUFFER, values.size() * sizeof(float),
-                         values.data(), GL_STATIC_DRAW);
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER,
@@ -328,9 +389,14 @@ int main() try {
 
         glBindVertexArray(vao);
 
+        fill_values(vertices, values, dt, minv, maxv);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_values);
+        glBufferData(GL_ARRAY_BUFFER, values.size() * sizeof(float),
+                     values.data(), GL_STATIC_DRAW);
+
         glPointSize(10);
-        glDrawElements(GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_INT, 0);
-        // glDrawArrays(GL_POINTS, 0, vertices.size());
+
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
         SDL_GL_SwapWindow(window);
     }
