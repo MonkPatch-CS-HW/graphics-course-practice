@@ -62,11 +62,13 @@ in vec2 texcoord;
 
 layout (location = 0) out vec4 out_color;
 
+uniform sampler2D sampler;
+
 void main()
 {
     float lightness = 0.5 + 0.5 * dot(normalize(normal), normalize(vec3(1.0, 2.0, 3.0)));
-    vec3 albedo = vec3(texcoord, 0.0);
-    out_color = vec4(lightness * albedo, 1.0);
+    vec4 albedo = texture(sampler, texcoord);
+    out_color = vec4(lightness * albedo);
 }
 )";
 
@@ -155,10 +157,25 @@ int main() try
 
     GLuint viewmodel_location = glGetUniformLocation(program, "viewmodel");
     GLuint projection_location = glGetUniformLocation(program, "projection");
+    GLuint sampler_location = glGetUniformLocation(program, "sampler");
+
+    glUniform1i(sampler_location, 0);
 
     std::string project_root = PROJECT_ROOT;
     std::string cow_texture_path = project_root + "/cow.png";
     obj_data cow = parse_obj(project_root + "/cow.obj");
+
+    std::vector<uint32_t> texture(512 * 512);
+    for (int i = 0; i < 512 * 512; i++)
+        texture[i] = (i % 2) ? 0xffffffffu : 0xff000000u;
+
+    GLuint txt;
+    glGenTextures(1, &txt);
+    glBindTexture(GL_TEXTURE_2D, txt);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
@@ -261,6 +278,8 @@ int main() try
         glUseProgram(program);
         glUniformMatrix4fv(viewmodel_location, 1, GL_TRUE, viewmodel);
         glUniformMatrix4fv(projection_location, 1, GL_TRUE, projection);
+
+        glBindTexture(GL_TEXTURE_2D, txt);
 
     		glDrawElements(GL_TRIANGLES, cow.indices.size(), GL_UNSIGNED_INT, 0);
 
