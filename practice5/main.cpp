@@ -38,6 +38,7 @@ R"(#version 330 core
 
 uniform mat4 viewmodel;
 uniform mat4 projection;
+uniform float time;
 
 layout (location = 0) in vec3 in_position;
 layout (location = 1) in vec3 in_normal;
@@ -50,7 +51,7 @@ void main()
 {
     gl_Position = projection * viewmodel * vec4(in_position, 1.0);
     normal = mat3(viewmodel) * in_normal;
-    texcoord = in_texcoord;
+    texcoord = in_texcoord * vec2((sin(time / 2) + 2.0) / 2.0, (cos(time / 2) + 1.0) / 2.0);
 }
 )";
 
@@ -158,6 +159,7 @@ int main() try
     GLuint viewmodel_location = glGetUniformLocation(program, "viewmodel");
     GLuint projection_location = glGetUniformLocation(program, "projection");
     GLuint sampler_location = glGetUniformLocation(program, "sampler");
+    GLuint time_location = glGetUniformLocation(program, "time");
 
     std::string project_root = PROJECT_ROOT;
     std::string cow_texture_path = project_root + "/cow.png";
@@ -311,6 +313,7 @@ int main() try
         glUseProgram(program);
         glUniformMatrix4fv(viewmodel_location, 1, GL_TRUE, viewmodel);
         glUniformMatrix4fv(projection_location, 1, GL_TRUE, projection);
+        glUniform1f(time_location, time);
 
     		glDrawElements(GL_TRIANGLES, cow.indices.size(), GL_UNSIGNED_INT, 0);
 
