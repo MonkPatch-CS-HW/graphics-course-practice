@@ -169,13 +169,31 @@ int main() try
     for (int i = 0; i < 512 * 512; i++)
         texture[i] = (i % 2) ? 0xffffffffu : 0xff000000u;
 
+    std::vector<uint32_t> mipmap1(256 * 256);
+    for (int i = 0; i < 256 * 256; i++)
+        mipmap1[i] = 0xffff0000u;
+
+    std::vector<uint32_t> mipmap2(128 * 128);
+    for (int i = 0; i < 128 * 128; i++)
+        mipmap2[i] = 0xff00ff00u;
+
+    std::vector<uint32_t> mipmap3(64 * 64);
+    for (int i = 0; i < 64 * 64; i++)
+        mipmap3[i] = 0xff0000ffu;
+
     GLuint txt;
     glGenTextures(1, &txt);
     glBindTexture(GL_TEXTURE_2D, txt);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, mipmap1.data());
+    glTexImage2D(GL_TEXTURE_2D, 2, GL_RGBA8, 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, mipmap2.data());
+    glTexImage2D(GL_TEXTURE_2D, 3, GL_RGBA8, 64,  64,  0, GL_RGBA, GL_UNSIGNED_BYTE, mipmap3.data());
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
