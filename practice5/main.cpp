@@ -159,8 +159,6 @@ int main() try
     GLuint projection_location = glGetUniformLocation(program, "projection");
     GLuint sampler_location = glGetUniformLocation(program, "sampler");
 
-    glUniform1i(sampler_location, 0);
-
     std::string project_root = PROJECT_ROOT;
     std::string cow_texture_path = project_root + "/cow.png";
     obj_data cow = parse_obj(project_root + "/cow.obj");
@@ -182,18 +180,36 @@ int main() try
         mipmap3[i] = 0xff0000ffu;
 
     GLuint txt;
+    glActiveTexture(GL_TEXTURE0);
     glGenTextures(1, &txt);
     glBindTexture(GL_TEXTURE_2D, txt);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
-
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, mipmap1.data());
     glTexImage2D(GL_TEXTURE_2D, 2, GL_RGBA8, 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, mipmap2.data());
     glTexImage2D(GL_TEXTURE_2D, 3, GL_RGBA8, 64,  64,  0, GL_RGBA, GL_UNSIGNED_BYTE, mipmap3.data());
+    
+    int x, y, c;
+    stbi_uc *txtdata = stbi_load(cow_texture_path.c_str(), &x, &y, &c, 4);
+
+    GLuint txt2;
+    glActiveTexture(GL_TEXTURE1);
+    glGenTextures(1, &txt2);
+    glBindTexture(GL_TEXTURE_2D, txt2);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, txtdata);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(txtdata);
+
+    glUseProgram(program);
+    glUniform1i(sampler_location, 1);
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
@@ -221,7 +237,6 @@ int main() try
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(std::uint32_t) * cow.indices.size(), cow.indices.data(), GL_STATIC_DRAW);
     
-
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
     float time = 0.f;
@@ -296,8 +311,6 @@ int main() try
         glUseProgram(program);
         glUniformMatrix4fv(viewmodel_location, 1, GL_TRUE, viewmodel);
         glUniformMatrix4fv(projection_location, 1, GL_TRUE, projection);
-
-        glBindTexture(GL_TEXTURE_2D, txt);
 
     		glDrawElements(GL_TRIANGLES, cow.indices.size(), GL_UNSIGNED_INT, 0);
 
