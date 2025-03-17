@@ -220,6 +220,29 @@ int main() try
     std::string dragon_model_path = project_root + "/dragon.obj";
     obj_data dragon = parse_obj(dragon_model_path);
 
+    GLuint txt;
+    glActiveTexture(GL_TEXTURE0);
+    glGenTextures(1, &txt);
+    glBindTexture(GL_TEXTURE_2D, txt);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width/2, height/2, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    GLuint rb;
+    glGenRenderbuffers(1, &rb);
+    glBindRenderbuffer(GL_RENDERBUFFER, rb);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width/2, height/2);
+
+    GLuint fb;
+    glGenFramebuffers(1, &fb);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fb);
+    glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, txt);
+    glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb);
+
+    if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        throw std::runtime_error("framebuffer incomplete");
+    
     GLuint dragon_vao, dragon_vbo, dragon_ebo;
     glGenVertexArrays(1, &dragon_vao);
     glBindVertexArray(dragon_vao);
@@ -272,6 +295,10 @@ int main() try
                 width = event.window.data1;
                 height = event.window.data2;
                 glViewport(0, 0, width, height);
+                glBindTexture(GL_TEXTURE_2D, txt);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width/2, height/2, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+                glBindRenderbuffer(GL_RENDERBUFFER, rb);
+                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width/2, height/2);
                 break;
             }
             break;
