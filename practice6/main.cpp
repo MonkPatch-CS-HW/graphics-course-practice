@@ -118,6 +118,7 @@ void main()
 
 const char rectangle_fragment_shader_source[] =
 R"(#version 330 core
+uniform sampler2D render_result;
 
 in vec2 texcoord;
 
@@ -125,7 +126,7 @@ layout (location = 0) out vec4 out_color;
 
 void main()
 {
-    out_color = vec4(texcoord, 0.0, 1.0);
+    out_color = texture(render_result, texcoord);
 }
 )";
 
@@ -226,7 +227,7 @@ int main() try
     glBindTexture(GL_TEXTURE_2D, txt);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width/2, height/2, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
     GLuint rb;
@@ -237,7 +238,7 @@ int main() try
     GLuint fb;
     glGenFramebuffers(1, &fb);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fb);
-    glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, txt);
+    glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, txt, 0);
     glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb);
 
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -266,6 +267,7 @@ int main() try
 
     GLuint center_location = glGetUniformLocation(rectangle_program, "center");
     GLuint size_location = glGetUniformLocation(rectangle_program, "size");
+    GLuint render_result_location = glGetUniformLocation(rectangle_program, "render_result");
 
     GLuint rectangle_vao;
     glGenVertexArrays(1, &rectangle_vao);
@@ -294,11 +296,11 @@ int main() try
             case SDL_WINDOWEVENT_RESIZED:
                 width = event.window.data1;
                 height = event.window.data2;
-                glViewport(0, 0, width, height);
-                glBindTexture(GL_TEXTURE_2D, txt);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width/2, height/2, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-                glBindRenderbuffer(GL_RENDERBUFFER, rb);
-                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width/2, height/2);
+                // glViewport(0, 0, width, height);
+                // glBindTexture(GL_TEXTURE_2D, txt);
+                // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width/2, height/2, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+                // glBindRenderbuffer(GL_RENDERBUFFER, rb);
+                // glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width/2, height/2);
                 break;
             }
             break;
@@ -329,7 +331,7 @@ int main() try
             model_angle += 2.f * dt;
 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fb);
-        glViewport(0, 0, width, height);
+        glViewport(0, 0, width/2, height/2);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
@@ -359,14 +361,18 @@ int main() try
         glBindVertexArray(dragon_vao);
         glDrawElements(GL_TRIANGLES, dragon.indices.size(), GL_UNSIGNED_INT, nullptr);
 
-        glUseProgram(rectangle_program);
-        glUniform2f(center_location, -0.5f, -0.5f);
-        glUniform2f(size_location, 0.5f, 0.5f);
-        glBindVertexArray(rectangle_vao);
-
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glUseProgram(rectangle_program);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, txt);
+        glUniform1i(render_result_location, 0);
+
+        glUniform2f(center_location, -0.5f, -0.5f);
+        glUniform2f(size_location, 0.5f, 0.5f);
+        glBindVertexArray(rectangle_vao);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
