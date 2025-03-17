@@ -129,6 +129,25 @@ layout (location = 0) out vec4 out_color;
 void main()
 {
     vec2 texcoord = texcoord;
+
+    if (mode == 3) {
+        vec4 sum = vec4(0.0);
+        float sum_w = 0.0;
+        const int N = 7;
+        float radius = 5.0;
+
+        for (int x = -N; x <= N; x++) {
+            for (int y = -N; y <= N; y++) {
+                vec2 offset = vec2(x, y) / vec2(textureSize(render_result, 0));
+                float c = exp(-float(x * x + y * y) / (radius * radius));
+                sum += c * texture(render_result, texcoord + offset);
+                sum_w += c;
+            }
+        }
+        out_color = sum / sum_w;
+        return;
+    }
+
     if (mode == 2) {
         texcoord = texcoord + vec2(sin(texcoord.y * 50.0 + time * 10) * 0.01, 0.0);
     }
