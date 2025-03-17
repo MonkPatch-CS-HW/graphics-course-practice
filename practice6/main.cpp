@@ -119,6 +119,8 @@ void main()
 const char rectangle_fragment_shader_source[] =
 R"(#version 330 core
 uniform sampler2D render_result;
+uniform int mode;
+uniform float time;
 
 in vec2 texcoord;
 
@@ -126,7 +128,14 @@ layout (location = 0) out vec4 out_color;
 
 void main()
 {
+    vec2 texcoord = texcoord;
+    if (mode == 2) {
+        texcoord = texcoord + vec2(sin(texcoord.y * 50.0 + time * 10) * 0.01, 0.0);
+    }
     out_color = texture(render_result, texcoord);
+    if (mode == 1) {
+        out_color = floor(out_color * 4.0) / 3.0;
+    }
 }
 )";
 
@@ -266,6 +275,8 @@ int main() try
     GLuint center_location = glGetUniformLocation(rectangle_program, "center");
     GLuint size_location = glGetUniformLocation(rectangle_program, "size");
     GLuint render_result_location = glGetUniformLocation(rectangle_program, "render_result");
+    GLuint mode_location = glGetUniformLocation(rectangle_program, "mode");
+    GLuint time_location = glGetUniformLocation(rectangle_program, "time");
 
     GLuint rectangle_vao;
     glGenVertexArrays(1, &rectangle_vao);
@@ -294,11 +305,11 @@ int main() try
             case SDL_WINDOWEVENT_RESIZED:
                 width = event.window.data1;
                 height = event.window.data2;
-                // glViewport(0, 0, width, height);
-                // glBindTexture(GL_TEXTURE_2D, txt);
-                // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width/2, height/2, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-                // glBindRenderbuffer(GL_RENDERBUFFER, rb);
-                // glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width/2, height/2);
+                glViewport(0, 0, width, height);
+                glBindTexture(GL_TEXTURE_2D, txt);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width/2, height/2, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+                glBindRenderbuffer(GL_RENDERBUFFER, rb);
+                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width/2, height/2);
                 break;
             }
             break;
@@ -343,7 +354,7 @@ int main() try
             glm::rotate(glm::translate(glm::mat4(1.f), {0.f, 0.f, -camera_distance}), view_angle, {1.f, 0.f, 0.f}),
             glm::rotate(glm::translate(glm::mat4(1.f), {0.f, 0.f, -camera_distance}), 0.f, {1.f, 0.f, 0.f}),
             glm::rotate(glm::translate(glm::mat4(1.f), {0.f, 0.f, -camera_distance}), glm::pi<float>()/2, {1.f, 0.f, 0.f}),
-            glm::rotate(glm::translate(glm::mat4(1.f), {0.f, 0.f, -camera_distance}), glm::pi<float>()/2, {0.f, 1.f, 0.f}),
+            glm::rotate(glm::translate(glm::mat4(1.f), {0.f, 0.f, -camera_distance}), -glm::pi<float>()/2, {0.f, 1.f, 0.f}),
         };
 
         for (int i = 0; i < 4; i++) {
@@ -387,6 +398,8 @@ int main() try
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, txt);
             glUniform1i(render_result_location, 0);
+            glUniform1i(mode_location, i);
+            glUniform1f(time_location, time);
 
             glUniform2f(center_location, 0.5f * ((i % 2) ? 1 : -1), 0.5f * ((i / 2) ? 1 : -1));
             glUniform2f(size_location, 0.5f, 0.5f);
