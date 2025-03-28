@@ -299,7 +299,8 @@ int main() try {
         float near = 0.1f;
         float far = 100.f;
 
-        glm::mat4 model(1.f);
+        glm::mat4 model0 = glm::scale(glm::mat4(1.f), glm::vec3(0.3f));
+        glm::mat4 model;
 
         glm::mat4 view(1.f);
         view = glm::translate(view, {0.f, 0.f, -camera_distance});
@@ -323,8 +324,6 @@ int main() try {
         glUniform3f(point_light_position_location, sin(time), cos(time), 2 * sin(time) * cos(time));
         glUniform3f(point_light_color_location, 1.f, 0.9f, 0.4f);
         glUniform3f(point_light_attenuation_location, 1.f, 0.f, 0.01f);
-        glUniform1f(glossiness_location, 5.f);
-        glUniform1f(roughness_location, 0.1f);
         glUniform1f(specular_power_location, 10.f);
 
         if (transparent) {
@@ -336,8 +335,18 @@ int main() try {
         }
 
         glBindVertexArray(suzanne_vao);
-        glDrawElements(GL_TRIANGLES, suzanne.indices.size(), GL_UNSIGNED_INT, nullptr);
 
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                glUniform1f(glossiness_location, (1 - x) * (y + 1) * 1.f);
+                glUniform1f(roughness_location, (x + 1) * (y + 1) * 0.1f);
+
+                model = glm::translate(model0, glm::vec3(x * 3.f, y * 3.f, 0.f));
+                glUniformMatrix4fv(model_location, 1, GL_FALSE, reinterpret_cast<float *>(&model));
+                glDrawElements(GL_TRIANGLES, suzanne.indices.size(), GL_UNSIGNED_INT, nullptr);
+            }
+        }
+        
         SDL_GL_SwapWindow(window);
     }
 
