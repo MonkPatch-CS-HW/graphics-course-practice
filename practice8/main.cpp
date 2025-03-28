@@ -123,7 +123,7 @@ const vec2 VERTICES[6] = vec2[6](
 void main()
 {
     gl_Position = vec4(VERTICES[gl_VertexID] / 4.0 - 0.75, 0.0, 1.0);
-    texcoord = VERTICES[gl_VertexID];
+    texcoord = VERTICES[gl_VertexID] * 0.5 + 0.5;
 }
 )";
 
@@ -139,6 +139,28 @@ layout (location = 0) out vec4 out_color;
 void main()
 {
     out_color = vec4(texture(shadow_map, texcoord).rrr, 1.0);
+}
+)";
+
+const char vertex_shadow_map_shader_source[] =
+    R"(#version 330 core
+
+layout (location = 0) in vec3 in_position;
+
+uniform mat4 model;
+uniform mat4 shadow_projection;
+
+void main()
+{
+    gl_Position = shadow_projection * model * vec4(in_position, 1.0);
+}
+)";
+
+const char fragment_shadow_map_shader_source[] =
+    R"(#version 330 core
+
+void main()
+{
 }
 )";
 
@@ -228,6 +250,10 @@ try
     auto fragment_debug_shader = create_shader(GL_FRAGMENT_SHADER, fragment_debug_shader_source);
     auto debug_program = create_program(vertex_debug_shader, fragment_debug_shader);
 
+    auto vertex_shadow_map_shader = create_shader(GL_VERTEX_SHADER, vertex_shadow_map_shader_source);
+    auto fragment_shadow_map_shader = create_shader(GL_FRAGMENT_SHADER, fragment_shadow_map_shader_source);
+    auto shadow_map_program = create_program(vertex_shadow_map_shader, fragment_shadow_map_shader);
+
     GLuint model_location = glGetUniformLocation(program, "model");
     GLuint view_location = glGetUniformLocation(program, "view");
     GLuint projection_location = glGetUniformLocation(program, "projection");
@@ -236,6 +262,9 @@ try
     GLuint sun_direction_location = glGetUniformLocation(program, "sun_direction");
     GLuint sun_color_location = glGetUniformLocation(program, "sun_color");
 
+    GLuint model_sm_location = glGetUniformLocation(shadow_map_program, "model");
+    GLuint shadow_projection_location = glGetUniformLocation(shadow_map_program, "shadow_projection");
+
     std::string project_root = PROJECT_ROOT;
     std::string scene_path = project_root + "/buddha.obj";
     obj_data scene = parse_obj(scene_path);
@@ -243,6 +272,7 @@ try
     const int shadow_map_size = 1024;
     
     GLuint tex;
+    glActiveTexture(GL_TEXTURE0);
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
@@ -332,13 +362,14 @@ try
         if (button_down[SDLK_RIGHT])
             camera_angle -= 2.f * dt;
 
-        glViewport(0, 0, width, height);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+        glViewport(0, 0, shadow_map_size, shadow_map_size);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.8f, 0.8f, 1.f, 0.f);
 
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
 
         float near = 0.1f;
         float far = 100.f;
@@ -358,8 +389,27 @@ try
 
         glm::vec3 sun_direction = glm::normalize(glm::vec3(std::sin(time * 0.5f), 2.f, std::cos(time * 0.5f)));
 
-        glUseProgram(program);
+        glUseProgram(shadow_map_program);
 
+        glm::vec3 light_Z = glm::vec3(0, -1, 0);
+        glm::vec3 light_X = glm::vec3(1, 0, 0);
+        glm::vec3 light_Y = glm::cross(light_X, light_Z);
+        glm::mat4 shadow_projection = glm::transpose(glm::mat3(light_X, light_Y, light_Z));
+
+        glUniformMatrix4fv(model_sm_location, 1, GL_FALSE, reinterpret_cast<float *>(&model));
+        glUniformMatrix4fv(shadow_projection_location, 1, GL_FALSE, reinterpret_cast<float *>(&shadow_projection));
+
+        glBindVertexArray(scene_vao);
+        glDrawElements(GL_TRIANGLES, scene.indices.size(), GL_UNSIGNED_INT, nullptr);
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glViewport(0, 0, width, height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        glUseProgram(program);
         glUniformMatrix4fv(model_location, 1, GL_FALSE, reinterpret_cast<float *>(&model));
         glUniformMatrix4fv(view_location, 1, GL_FALSE, reinterpret_cast<float *>(&view));
         glUniformMatrix4fv(projection_location, 1, GL_FALSE, reinterpret_cast<float *>(&projection));
@@ -373,6 +423,8 @@ try
 
         glUseProgram(debug_program);
         glBindVertexArray(shadow_map_vao);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tex);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         SDL_GL_SwapWindow(window);
