@@ -77,7 +77,7 @@ uniform vec3 albedo;
 uniform vec3 sun_direction;
 uniform vec3 sun_color;
 
-uniform sampler2D shadow_map;
+uniform sampler2DShadow shadow_map;
 uniform mat4 shadow_projection;
 
 in vec3 position;
@@ -107,9 +107,7 @@ void main()
     float shadow_depth = ndc.z * 0.5 + 0.5;
     float ambient_light = 0.2;
     vec3 color = albedo * ambient_light;
-    if (shadow_texcoord.x < 0.0 || shadow_texcoord.x > 1.0 || shadow_texcoord.y < 0.0 || shadow_texcoord.y > 1.0 || texture(shadow_map, shadow_texcoord).r >= shadow_depth) {
-        color += sun_color * phong(sun_direction);
-    }
+    color += sun_color * phong(sun_direction) * texture(shadow_map, vec3(shadow_texcoord, shadow_depth));
     out_color = vec4(color, 1.0);
 }
 )";
@@ -294,10 +292,12 @@ try
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
     
     GLuint fbo;
     glGenFramebuffers(1, &fbo);
