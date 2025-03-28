@@ -100,6 +100,23 @@ vec3 phong(vec3 direction) {
     return diffuse(direction) + specular(direction);
 }
 
+float multiplier_shadow_gauss(vec2 shadow_texcoord, float shadow_depth) {
+    if (shadow_texcoord.x < 0.0 || shadow_texcoord.x > 1.0 || shadow_texcoord.y < 0.0 || shadow_texcoord.y > 1.0) {
+        return 1.0;
+    }
+    float answer = 0.0;
+    float multiplier_sum = 0.0;
+    for (int i = -10; i <= 10; i++) {
+        for (int j = -10; j <= 10; j++) {
+            float multiplier = exp(-(i * i + j * j) / 2.0);
+            vec2 coord = vec2(shadow_texcoord.x + i * 0.002, shadow_texcoord.y + j * 0.002);
+            answer += multiplier * texture(shadow_map, vec3(coord, shadow_depth));
+            multiplier_sum += multiplier;
+        }
+    }
+    return answer / multiplier_sum;
+}
+
 void main()
 {
     vec4 ndc = shadow_projection * vec4(position, 1.0);
@@ -107,7 +124,7 @@ void main()
     float shadow_depth = ndc.z * 0.5 + 0.5;
     float ambient_light = 0.2;
     vec3 color = albedo * ambient_light;
-    color += sun_color * phong(sun_direction) * texture(shadow_map, vec3(shadow_texcoord, shadow_depth));
+    color += sun_color * phong(sun_direction) * multiplier_shadow_gauss(shadow_texcoord, shadow_depth);
     out_color = vec4(color, 1.0);
 }
 )";
