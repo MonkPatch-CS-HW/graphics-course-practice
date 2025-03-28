@@ -105,6 +105,43 @@ void main()
 }
 )";
 
+
+const char vertex_debug_shader_source[] =
+    R"(#version 330 core
+
+out vec2 texcoord;
+
+const vec2 VERTICES[6] = vec2[6](
+    vec2(-1.0, -1.0),
+    vec2(1.0, -1.0),
+    vec2(1.0, 1.0),
+    vec2(-1.0, -1.0),
+    vec2(1.0, 1.0),
+    vec2(-1.0, 1.0)
+);
+
+void main()
+{
+    gl_Position = vec4(VERTICES[gl_VertexID] / 4.0 - 0.75, 0.0, 1.0);
+    texcoord = VERTICES[gl_VertexID];
+}
+)";
+
+const char fragment_debug_shader_source[] =
+    R"(#version 330 core
+
+uniform sampler2D shadow_map;
+
+in vec2 texcoord;
+
+layout (location = 0) out vec4 out_color;
+
+void main()
+{
+    out_color = vec4(texture(shadow_map, texcoord).rrr, 1.0);
+}
+)";
+
 GLuint create_shader(GLenum type, const char *source)
 {
     GLuint result = glCreateShader(type);
@@ -187,6 +224,10 @@ try
     auto fragment_shader = create_shader(GL_FRAGMENT_SHADER, fragment_shader_source);
     auto program = create_program(vertex_shader, fragment_shader);
 
+    auto vertex_debug_shader = create_shader(GL_VERTEX_SHADER, vertex_debug_shader_source);
+    auto fragment_debug_shader = create_shader(GL_FRAGMENT_SHADER, fragment_debug_shader_source);
+    auto debug_program = create_program(vertex_debug_shader, fragment_debug_shader);
+
     GLuint model_location = glGetUniformLocation(program, "model");
     GLuint view_location = glGetUniformLocation(program, "view");
     GLuint projection_location = glGetUniformLocation(program, "projection");
@@ -218,7 +259,10 @@ try
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         throw std::runtime_error("Framebuffer is not complete");
 
-    GLuint scene_vao, scene_vbo, scene_ebo;
+    GLuint scene_vao, scene_vbo, scene_ebo, shadow_map_vao;
+    glGenVertexArrays(1, &shadow_map_vao);
+    glBindVertexArray(shadow_map_vao);
+
     glGenVertexArrays(1, &scene_vao);
     glBindVertexArray(scene_vao);
 
@@ -289,6 +333,7 @@ try
             camera_angle -= 2.f * dt;
 
         glViewport(0, 0, width, height);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.8f, 0.8f, 1.f, 0.f);
 
@@ -325,6 +370,10 @@ try
 
         glBindVertexArray(scene_vao);
         glDrawElements(GL_TRIANGLES, scene.indices.size(), GL_UNSIGNED_INT, nullptr);
+
+        glUseProgram(debug_program);
+        glBindVertexArray(shadow_map_vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         SDL_GL_SwapWindow(window);
     }
