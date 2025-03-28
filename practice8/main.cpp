@@ -107,7 +107,7 @@ void main()
     float shadow_depth = ndc.z * 0.5 + 0.5;
     float ambient_light = 0.2;
     vec3 color = albedo * ambient_light;
-    if (texture(shadow_map, shadow_texcoord).r >= shadow_depth) {
+    if (shadow_texcoord.x < 0.0 || shadow_texcoord.x > 1.0 || shadow_texcoord.y < 0.0 || shadow_texcoord.y > 1.0 || texture(shadow_map, shadow_texcoord).r >= shadow_depth) {
         color += sun_color * phong(sun_direction);
     }
     out_color = vec4(color, 1.0);
@@ -172,6 +172,13 @@ void main()
 {
 }
 )";
+
+glm::vec3 find_orthogonal_vector(glm::vec3 v) {
+    glm::vec3 w = glm::vec3(-v.y, v.x, 0);
+    if (w == glm::vec3(0)) w = glm::vec3(0, -v.z, v.y);
+    if (w == glm::vec3(0)) w = glm::vec3(v.z, 0, -v.x);
+    return w;
+}
 
 GLuint create_shader(GLenum type, const char *source)
 {
@@ -402,8 +409,8 @@ try
 
         glUseProgram(shadow_map_program);
 
-        glm::vec3 light_Z = glm::vec3(0, -1, 0);
-        glm::vec3 light_X = glm::vec3(1, 0, 0);
+        glm::vec3 light_Z = -sun_direction;
+        glm::vec3 light_X = find_orthogonal_vector(light_Z);
         glm::vec3 light_Y = glm::cross(light_X, light_Z);
         glm::mat4 shadow_projection = glm::transpose(glm::mat3(light_X, light_Y, light_Z));
 
