@@ -111,7 +111,7 @@ void main()
     vec3 color = ambient
         + (diffuse(sun_direction) + specular(sun_direction)) * sun_color
         + (diffuse(light_direction) + specular(light_direction)) * point_light_color * attenuation;
-    out_color = vec4(color, 1.0);
+    out_color = vec4(color, 0.5);
 }
 )";
 
@@ -326,6 +326,14 @@ int main() try {
         glUniform1f(glossiness_location, 5.f);
         glUniform1f(roughness_location, 0.1f);
         glUniform1f(specular_power_location, 10.f);
+
+        if (transparent) {
+            glEnable(GL_BLEND);
+            glBlendEquation(GL_FUNC_ADD);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        } else {
+            glDisable(GL_BLEND);
+        }
 
         glBindVertexArray(suzanne_vao);
         glDrawElements(GL_TRIANGLES, suzanne.indices.size(), GL_UNSIGNED_INT, nullptr);
