@@ -82,6 +82,7 @@ in vec3 normal;
 layout (location = 0) out vec4 out_color;
 
 const float bias = 0.001;
+const float delta = 0.125;
 
 void main()
 {
@@ -97,8 +98,8 @@ void main()
         float mu = data.r;
         float sigma = data.g - mu * mu;
         float z = shadow_pos.z;
-        shadow_factor = (z < mu) ? 1.0
-            : sigma / (sigma + (z - mu) * (z - mu));
+        shadow_factor = (z < mu) ? 1.0 : sigma / (sigma + (z - mu) * (z - mu));
+        shadow_factor = clamp((shadow_factor - delta) / (1.0 - delta), 0.0, 1.0);
     }
 
     vec3 albedo = vec3(1.0, 1.0, 1.0);
@@ -170,7 +171,13 @@ layout (location = 0) out vec4 out_color;
 void main()
 {
     float z = gl_FragCoord.z;
-    out_color = vec4(z, z * z, 0.0, 0.0);
+
+    float dzdx = dFdx(z);
+    float dzdy = dFdy(z);
+
+    float angle = z * z + 0.25 * (dzdx * dzdx + dzdy * dzdy);
+
+    out_color = vec4(z, angle, 0.0, 0.0);
 }
 )";
 
