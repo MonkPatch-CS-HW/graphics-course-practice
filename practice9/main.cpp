@@ -92,8 +92,14 @@ void main()
 
     bool in_shadow_texture = (shadow_pos.x > 0.0) && (shadow_pos.x < 1.0) && (shadow_pos.y > 0.0) && (shadow_pos.y < 1.0) && (shadow_pos.z > 0.0) && (shadow_pos.z < 1.0);
     float shadow_factor = 1.0;
-    if (in_shadow_texture)
-        shadow_factor = (texture(shadow_map, shadow_pos.xy).r < shadow_pos.z) ? 0.0 : 1.0;
+    if (in_shadow_texture) {
+        vec2 data = texture(shadow_map, shadow_pos.xy).rg;
+        float mu = data.r;
+        float sigma = data.g - mu * mu;
+        float z = shadow_pos.z;
+        shadow_factor = (z < mu) ? 1.0
+            : sigma / (sigma + (z - mu) * (z - mu));
+    }
 
     vec3 albedo = vec3(1.0, 1.0, 1.0);
 
