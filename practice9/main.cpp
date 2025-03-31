@@ -277,6 +277,32 @@ try
     std::string scene_path = project_root + "/bunny.obj";
     obj_data scene = parse_obj(scene_path);
 
+    glm::vec3 bbox_min = glm::vec3(1.f);
+    glm::vec3 bbox_max = glm::vec3(-1.f);
+
+    for (auto &vertex : scene.vertices)
+    {
+        bbox_min.x = std::min(bbox_min.x, vertex.position[0]);
+        bbox_min.y = std::min(bbox_min.y, vertex.position[1]);
+        bbox_min.z = std::min(bbox_min.z, vertex.position[2]);
+
+        bbox_max.x = std::max(bbox_max.x, vertex.position[0]);
+        bbox_max.y = std::max(bbox_max.y, vertex.position[1]);
+        bbox_max.z = std::max(bbox_max.z, vertex.position[2]);
+    }
+
+    glm::vec3 bbox_vertices[8] = {
+        {bbox_min.x, bbox_min.y, bbox_min.z},
+        {bbox_min.x, bbox_min.y, bbox_max.z},
+        {bbox_min.x, bbox_max.y, bbox_min.z},
+        {bbox_min.x, bbox_max.y, bbox_max.z},
+        {bbox_max.x, bbox_min.y, bbox_min.z},
+        {bbox_max.x, bbox_min.y, bbox_max.z},
+        {bbox_max.x, bbox_max.y, bbox_min.z},
+        {bbox_max.x, bbox_max.y, bbox_max.z}};
+
+    glm::vec3 bbox_center = (bbox_min + bbox_max) / 2.f;
+
     GLuint vao, vbo, ebo;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -393,15 +419,23 @@ try
         glm::vec3 light_z = -light_direction;
         glm::vec3 light_x = glm::normalize(glm::cross(light_z, {0.f, 1.f, 0.f}));
         glm::vec3 light_y = glm::cross(light_x, light_z);
-        float shadow_scale = 2.f;
 
-        glm::mat4 transform = glm::mat4(1.f);
-        for (size_t i = 0; i < 3; ++i)
+        float len_x = 0.f, len_y = 0.f, len_z = 0.f;
+        for (auto &vertex : bbox_vertices)
         {
-            transform[i][0] = shadow_scale * light_x[i];
-            transform[i][1] = shadow_scale * light_y[i];
-            transform[i][2] = shadow_scale * light_z[i];
+            len_x = std::max(len_x, glm::length(light_x * (vertex - bbox_center)));
+            len_y = std::max(len_y, glm::length(light_y * (vertex - bbox_center)));
+            len_z = std::max(len_z, glm::length(light_z * (vertex - bbox_center)));
         }
+
+        light_x *= len_x;
+        light_y *= len_y;
+        light_z *= len_z;
+
+        glm::mat4 transform = glm::inverse(glm::mat4({{light_x.x, light_x.y, light_x.z, 0},
+                                                      {light_y.x, light_y.y, light_y.z, 0},
+                                                      {light_z.x, light_z.y, light_z.z, 0},
+                                                      {bbox_center.x, bbox_center.y, bbox_center.z, 1.f}}));
 
         glUseProgram(shadow_program);
         glUniformMatrix4fv(shadow_model_location, 1, GL_FALSE, reinterpret_cast<float *>(&model));
