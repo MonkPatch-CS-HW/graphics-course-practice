@@ -44,7 +44,7 @@ void glew_fail(std::string_view message, GLenum error)
 }
 
 const char vertex_shader_source[] =
-R"(#version 330 core
+    R"(#version 330 core
 
 uniform mat4 model;
 uniform mat4 view;
@@ -65,7 +65,7 @@ void main()
 )";
 
 const char fragment_shader_source[] =
-R"(#version 330 core
+    R"(#version 330 core
 
 uniform vec3 ambient;
 
@@ -81,11 +81,14 @@ in vec3 normal;
 
 layout (location = 0) out vec4 out_color;
 
+const float bias = 0.001;
+
 void main()
 {
     vec4 shadow_pos = transform * vec4(position, 1.0);
     shadow_pos /= shadow_pos.w;
     shadow_pos = shadow_pos * 0.5 + vec4(0.5);
+    shadow_pos.z -= bias;
 
     bool in_shadow_texture = (shadow_pos.x > 0.0) && (shadow_pos.x < 1.0) && (shadow_pos.y > 0.0) && (shadow_pos.y < 1.0) && (shadow_pos.z > 0.0) && (shadow_pos.z < 1.0);
     float shadow_factor = 1.0;
@@ -103,7 +106,7 @@ void main()
 )";
 
 const char debug_vertex_shader_source[] =
-R"(#version 330 core
+    R"(#version 330 core
 
 vec2 vertices[6] = vec2[6](
     vec2(-1.0, -1.0),
@@ -125,7 +128,7 @@ void main()
 )";
 
 const char debug_fragment_shader_source[] =
-R"(#version 330 core
+    R"(#version 330 core
 
 uniform sampler2D shadow_map;
 
@@ -140,7 +143,7 @@ void main()
 )";
 
 const char shadow_vertex_shader_source[] =
-R"(#version 330 core
+    R"(#version 330 core
 
 uniform mat4 model;
 uniform mat4 transform;
@@ -154,13 +157,13 @@ void main()
 )";
 
 const char shadow_fragment_shader_source[] =
-R"(#version 330 core
+    R"(#version 330 core
 
 void main()
 {}
 )";
 
-GLuint create_shader(GLenum type, const char * source)
+GLuint create_shader(GLenum type, const char *source)
 {
     GLuint result = glCreateShader(type);
     glShaderSource(result, 1, &source, nullptr);
@@ -199,7 +202,8 @@ GLuint create_program(GLuint vertex_shader, GLuint fragment_shader)
     return result;
 }
 
-int main() try
+int main()
+try
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
         sdl2_fail("SDL_Init: ");
@@ -213,11 +217,11 @@ int main() try
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    SDL_Window * window = SDL_CreateWindow("Graphics course practice 9",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        800, 600,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
+    SDL_Window *window = SDL_CreateWindow("Graphics course practice 9",
+                                          SDL_WINDOWPOS_CENTERED,
+                                          SDL_WINDOWPOS_CENTERED,
+                                          800, 600,
+                                          SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
 
     if (!window)
         sdl2_fail("SDL_CreateWindow: ");
@@ -286,9 +290,9 @@ int main() try
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, scene.indices.size() * sizeof(scene.indices[0]), scene.indices.data(), GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(obj_data::vertex), (void*)(0));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(obj_data::vertex), (void *)(0));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(obj_data::vertex), (void*)(12));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(obj_data::vertex), (void *)(12));
 
     GLuint debug_vao;
     glGenVertexArrays(1, &debug_vao);
@@ -325,31 +329,33 @@ int main() try
     bool running = true;
     while (running)
     {
-        for (SDL_Event event; SDL_PollEvent(&event);) switch (event.type)
-        {
-        case SDL_QUIT:
-            running = false;
-            break;
-        case SDL_WINDOWEVENT: switch (event.window.event)
+        for (SDL_Event event; SDL_PollEvent(&event);)
+            switch (event.type)
             {
-            case SDL_WINDOWEVENT_RESIZED:
-                width = event.window.data1;
-                height = event.window.data2;
-                glViewport(0, 0, width, height);
+            case SDL_QUIT:
+                running = false;
+                break;
+            case SDL_WINDOWEVENT:
+                switch (event.window.event)
+                {
+                case SDL_WINDOWEVENT_RESIZED:
+                    width = event.window.data1;
+                    height = event.window.data2;
+                    glViewport(0, 0, width, height);
+                    break;
+                }
+                break;
+            case SDL_KEYDOWN:
+                button_down[event.key.keysym.sym] = true;
+
+                if (event.key.keysym.sym == SDLK_SPACE)
+                    paused = !paused;
+
+                break;
+            case SDL_KEYUP:
+                button_down[event.key.keysym.sym] = false;
                 break;
             }
-            break;
-        case SDL_KEYDOWN:
-            button_down[event.key.keysym.sym] = true;
-
-            if (event.key.keysym.sym == SDLK_SPACE)
-                paused = !paused;
-
-            break;
-        case SDL_KEYUP:
-            button_down[event.key.keysym.sym] = false;
-            break;
-        }
 
         if (!running)
             break;
@@ -456,7 +462,7 @@ int main() try
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
 }
-catch (std::exception const & e)
+catch (std::exception const &e)
 {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
