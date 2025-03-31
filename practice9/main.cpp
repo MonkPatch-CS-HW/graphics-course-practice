@@ -84,6 +84,24 @@ layout (location = 0) out vec4 out_color;
 const float bias = 0.001;
 const float delta = 0.125;
 
+vec2 gauss(vec2 texcoord) {
+    if (texcoord.x < 0.0 || texcoord.x > 1.0 || texcoord.y < 0.0 || texcoord.y > 1.0) {
+        return vec2(1.0, 1.0);
+    }
+
+    vec2 answer = vec2(0.0, 0.0);
+    float multiplier_sum = 0.0;
+    for (int i = -10; i <= 10; i++) {
+        for (int j = -10; j <= 10; j++) {
+            float multiplier = exp(-(i * i + j * j) / 2.0);
+            vec2 coord = vec2(texcoord.x + i * 0.002, texcoord.y + j * 0.002);
+            answer += multiplier * texture(shadow_map, coord).rg;
+            multiplier_sum += multiplier;
+        }
+    }
+    return answer / multiplier_sum;
+}
+
 void main()
 {
     vec4 shadow_pos = transform * vec4(position, 1.0);
@@ -94,9 +112,11 @@ void main()
     bool in_shadow_texture = (shadow_pos.x > 0.0) && (shadow_pos.x < 1.0) && (shadow_pos.y > 0.0) && (shadow_pos.y < 1.0) && (shadow_pos.z > 0.0) && (shadow_pos.z < 1.0);
     float shadow_factor = 1.0;
     if (in_shadow_texture) {
-        vec2 data = texture(shadow_map, shadow_pos.xy).rg;
+        vec2 data = gauss(shadow_pos.xy);
+
         float mu = data.r;
-        float sigma = data.g - mu * mu;
+        float mumu = data.g;
+        float sigma = mumu - mu * mu;
         float z = shadow_pos.z;
         shadow_factor = (z < mu) ? 1.0 : sigma / (sigma + (z - mu) * (z - mu));
         shadow_factor = clamp((shadow_factor - delta) / (1.0 - delta), 0.0, 1.0);
