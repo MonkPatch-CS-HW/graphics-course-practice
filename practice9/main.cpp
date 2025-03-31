@@ -138,7 +138,7 @@ layout (location = 0) out vec4 out_color;
 
 void main()
 {
-    out_color = vec4(texture(shadow_map, texcoord).rrr, 1.0);
+    out_color = texture(shadow_map, texcoord);
 }
 )";
 
@@ -159,8 +159,13 @@ void main()
 const char shadow_fragment_shader_source[] =
     R"(#version 330 core
 
+layout (location = 0) out vec4 out_color;
+
 void main()
-{}
+{
+    float z = gl_FragCoord.z;
+    out_color = vec4(z, z * z, 0.0, 0.0);
+}
 )";
 
 GLuint create_shader(GLenum type, const char *source)
@@ -328,19 +333,24 @@ try
     GLuint shadow_map;
     glGenTextures(1, &shadow_map);
     glBindTexture(GL_TEXTURE_2D, shadow_map);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadow_map_resolution, shadow_map_resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F, shadow_map_resolution, shadow_map_resolution, 0, GL_RGBA, GL_FLOAT, nullptr);
 
     GLuint shadow_fbo;
     glGenFramebuffers(1, &shadow_fbo);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, shadow_fbo);
-    glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_map, 0);
+    glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, shadow_map, 0);
     if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         throw std::runtime_error("Incomplete framebuffer!");
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+    GLuint shadow_rbo;
+    glGenRenderbuffers(1, &shadow_rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, shadow_rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, shadow_map_resolution, shadow_map_resolution);
+    glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, shadow_rbo);
 
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
@@ -407,6 +417,7 @@ try
         glm::vec3 light_direction = glm::normalize(glm::vec3(std::cos(time * 0.5f), 1.f, std::sin(time * 0.5f)));
 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, shadow_fbo);
+        glClearColor(1.0f, 1.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(0, 0, shadow_map_resolution, shadow_map_resolution);
 
