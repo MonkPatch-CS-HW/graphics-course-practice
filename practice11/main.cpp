@@ -48,10 +48,14 @@ const char vertex_shader_source[] =
 R"(#version 330 core
 
 layout (location = 0) in vec3 in_position;
+layout (location = 1) in float in_size;
+
+out float size;
 
 void main()
 {
     gl_Position = vec4(in_position, 1.0);
+    size = in_size;
 }
 )";
 
@@ -63,13 +67,22 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 camera_position;
 
+in float size[];
+
 layout (points) in;
-layout (points, max_vertices = 1) out;
+layout (triangle_strip, max_vertices = 4) out;
 
 void main()
 {
     vec3 center = gl_in[0].gl_Position.xyz;
-    gl_Position = projection * view * model * vec4(center, 1.0);
+    float size = size[0];
+    gl_Position = projection * view * model * vec4(center + size * vec3(-1.0, -1.0, 0.0), 1.0);
+    EmitVertex();   
+    gl_Position = projection * view * model * vec4(center + size * vec3(1.0, -1.0, 0.0), 1.0);
+    EmitVertex();
+    gl_Position = projection * view * model * vec4(center + size * vec3(-1.0, 1.0, 0.0), 1.0);
+    EmitVertex();
+    gl_Position = projection * view * model * vec4(center + size * vec3(1.0, 1.0, 0.0), 1.0);
     EmitVertex();
     EndPrimitive();
 }
@@ -129,6 +142,7 @@ GLuint create_program(Shaders ... shaders)
 struct particle
 {
     glm::vec3 position;
+    float size;
 };
 
 int main() try
@@ -187,6 +201,8 @@ int main() try
         p.position.x = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
         p.position.y = 0.f;
         p.position.z = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
+
+        p.size = std::uniform_real_distribution<float>{0.2f, 0.4f}(rng);
     }
 
     GLuint vao, vbo;
@@ -198,6 +214,9 @@ int main() try
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(particle), (void*)(0));
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(particle), (void*)(offsetof(particle, size)));
 
     const std::string project_root = PROJECT_ROOT;
     const std::string particle_texture_path = project_root + "/particle.png";
