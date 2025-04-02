@@ -120,7 +120,9 @@ uniform sampler2D txt;
 
 void main()
 {
-    out_color = vec4(1.0, 1.0, 1.0, texture(txt, texcoord).r);
+    float blueness = dFdx(texture(txt, texcoord).r * 5);
+    float redness = dFdx(texture(txt, -texcoord).g * 5);
+    out_color = vec4(0.5 - blueness * 0.5, 0.5 + redness * 0.5, 1.0, texture(txt, texcoord).r);
 }
 )";
 
