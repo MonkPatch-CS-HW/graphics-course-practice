@@ -7,6 +7,7 @@
 
 #include <GL/glew.h>
 
+#include <bits/stdc++.h>
 #include <string_view>
 #include <stdexcept>
 #include <iostream>
@@ -167,6 +168,22 @@ struct particle
     glm::vec3 velocity;
     float angle;
     float angular_velocity;
+
+    static particle random(std::default_random_engine & rng) {
+        particle p;
+        p.position.x = std::uniform_real_distribution<float>{-0.2f, 0.2f}(rng);
+        p.position.y = 0.f;
+        p.position.z = std::uniform_real_distribution<float>{-0.2f, 0.2f}(rng);
+
+        p.size = std::uniform_real_distribution<float>{0.2f, 0.4f}(rng);
+        p.velocity.x = std::uniform_real_distribution<float>{-0.2f, 0.2f}(rng);
+        p.velocity.y = std::uniform_real_distribution<float>{0.f, 1.f}(rng);
+        p.velocity.z = std::uniform_real_distribution<float>{-0.2f, 0.2f}(rng);
+
+        p.angle = std::uniform_real_distribution<float>{0.f, 2.f * glm::pi<float>()}(rng);
+        p.angular_velocity = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
+        return p;
+    }
 };
 
 int main() try
@@ -219,21 +236,7 @@ int main() try
 
     std::default_random_engine rng;
 
-    std::vector<particle> particles(256);
-    for (auto & p : particles)
-    {
-        p.position.x = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
-        p.position.y = 0.f;
-        p.position.z = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
-
-        p.size = std::uniform_real_distribution<float>{0.2f, 0.4f}(rng);
-        p.velocity.x = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
-        p.velocity.y = std::uniform_real_distribution<float>{0.f, 1.f}(rng);
-        p.velocity.z = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
-
-        p.angle = std::uniform_real_distribution<float>{0.f, 2.f * glm::pi<float>()}(rng);
-        p.angular_velocity = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
-    }
+    std::vector<particle> particles;
 
     GLuint vao, vbo;
     glGenVertexArrays(1, &vao);
@@ -332,10 +335,24 @@ int main() try
 
         glm::vec3 camera_position = (glm::inverse(view) * glm::vec4(0.f, 0.f, 0.f, 1.f)).xyz();
 
+        if (particles.size() < 256)
+        {
+            particles.push_back(particle::random(rng));
+        }
+
         for (auto & p : particles)
         {
-            p.position += p.velocity * dt;
-            p.velocity *= std::exp(-2 * dt);
+            if (p.position.y < -1.f || p.position.y > 1.f || p.position.x < -1.f || p.position.x > 1.f || p.position.z < -1.f || p.position.z > 1.f)
+            {
+                p = particle::random(rng);
+            }
+            
+            p.position += p.velocity * dt * 2.f;
+            if (p.velocity.length() > 0.4f)
+            {
+                p.velocity *= std::exp(-0.3 * dt);
+            }
+
             p.size *= std::exp(-0.5 * dt);
             p.angle += p.angular_velocity * dt * 5.f;
         }

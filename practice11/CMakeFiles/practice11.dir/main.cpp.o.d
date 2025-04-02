@@ -224,40 +224,53 @@ CMakeFiles/practice11.dir/main.cpp.o: \
  /usr/include/SDL2/SDL_misc.h /usr/include/GL/glew.h \
  /usr/include/c++/14.2.1/cstddef /usr/include/c++/14.2.1/cstdint \
  /usr/include/GL/glu.h /usr/include/GL/gl.h \
- /usr/include/c++/14.2.1/string_view \
- /usr/include/c++/14.2.1/bits/char_traits.h \
- /usr/include/c++/14.2.1/bits/postypes.h /usr/include/c++/14.2.1/cwchar \
- /usr/include/c++/14.2.1/bits/functional_hash.h \
- /usr/include/c++/14.2.1/bits/hash_bytes.h \
- /usr/include/c++/14.2.1/bits/range_access.h \
+ /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/stdc++.h \
+ /usr/include/c++/14.2.1/cassert /usr/include/assert.h \
+ /usr/include/c++/14.2.1/cctype /usr/include/c++/14.2.1/cfloat \
+ /usr/include/c++/14.2.1/ciso646 /usr/include/c++/14.2.1/climits \
+ /usr/include/c++/14.2.1/csetjmp /usr/include/setjmp.h \
+ /usr/include/bits/setjmp.h \
+ /usr/include/bits/types/struct___jmp_buf_tag.h \
+ /usr/include/c++/14.2.1/cstdarg /usr/include/c++/14.2.1/algorithm \
+ /usr/include/c++/14.2.1/bits/stl_algo.h \
+ /usr/include/c++/14.2.1/bits/algorithmfwd.h \
  /usr/include/c++/14.2.1/initializer_list \
+ /usr/include/c++/14.2.1/bits/stl_heap.h \
+ /usr/include/c++/14.2.1/bits/uniform_int_dist.h \
+ /usr/include/c++/14.2.1/bits/stl_tempbuf.h \
+ /usr/include/c++/14.2.1/bits/ranges_algo.h \
+ /usr/include/c++/14.2.1/bits/ranges_algobase.h \
  /usr/include/c++/14.2.1/bits/ranges_base.h \
  /usr/include/c++/14.2.1/bits/max_size_type.h \
- /usr/include/c++/14.2.1/numbers /usr/include/c++/14.2.1/iosfwd \
+ /usr/include/c++/14.2.1/numbers /usr/include/c++/14.2.1/bits/invoke.h \
+ /usr/include/c++/14.2.1/bits/ranges_util.h \
+ /usr/include/c++/14.2.1/pstl/glue_algorithm_defs.h \
+ /usr/include/c++/14.2.1/pstl/execution_defs.h \
+ /usr/include/c++/14.2.1/bitset /usr/include/c++/14.2.1/string \
  /usr/include/c++/14.2.1/bits/stringfwd.h \
  /usr/include/c++/14.2.1/bits/memoryfwd.h \
- /usr/include/c++/14.2.1/bits/ostream_insert.h \
- /usr/include/c++/14.2.1/bits/cxxabi_forced.h \
- /usr/include/c++/14.2.1/bits/string_view.tcc \
- /usr/include/c++/14.2.1/stdexcept /usr/include/c++/14.2.1/exception \
- /usr/include/c++/14.2.1/bits/exception_ptr.h \
- /usr/include/c++/14.2.1/bits/cxxabi_init_exception.h \
- /usr/include/c++/14.2.1/typeinfo \
- /usr/include/c++/14.2.1/bits/nested_exception.h \
- /usr/include/c++/14.2.1/string /usr/include/c++/14.2.1/bits/allocator.h \
+ /usr/include/c++/14.2.1/bits/char_traits.h \
+ /usr/include/c++/14.2.1/bits/postypes.h /usr/include/c++/14.2.1/cwchar \
+ /usr/include/c++/14.2.1/bits/allocator.h \
  /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/c++allocator.h \
  /usr/include/c++/14.2.1/bits/new_allocator.h \
  /usr/include/c++/14.2.1/bits/localefwd.h \
  /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/c++locale.h \
  /usr/include/c++/14.2.1/clocale /usr/include/locale.h \
- /usr/include/bits/locale.h /usr/include/c++/14.2.1/cctype \
+ /usr/include/bits/locale.h /usr/include/c++/14.2.1/iosfwd \
+ /usr/include/c++/14.2.1/bits/ostream_insert.h \
+ /usr/include/c++/14.2.1/bits/cxxabi_forced.h \
  /usr/include/c++/14.2.1/bits/stl_function.h \
  /usr/include/c++/14.2.1/backward/binders.h \
  /usr/include/c++/14.2.1/bits/refwrap.h \
- /usr/include/c++/14.2.1/bits/invoke.h \
+ /usr/include/c++/14.2.1/bits/range_access.h \
  /usr/include/c++/14.2.1/bits/basic_string.h \
  /usr/include/c++/14.2.1/ext/alloc_traits.h \
  /usr/include/c++/14.2.1/bits/alloc_traits.h \
+ /usr/include/c++/14.2.1/string_view \
+ /usr/include/c++/14.2.1/bits/functional_hash.h \
+ /usr/include/c++/14.2.1/bits/hash_bytes.h \
+ /usr/include/c++/14.2.1/bits/string_view.tcc \
  /usr/include/c++/14.2.1/ext/string_conversions.h \
  /usr/include/c++/14.2.1/cstdio /usr/include/c++/14.2.1/cerrno \
  /usr/include/errno.h /usr/include/bits/errno.h \
@@ -269,9 +282,25 @@ CMakeFiles/practice11.dir/main.cpp.o: \
  /usr/include/c++/14.2.1/bits/memory_resource.h \
  /usr/include/c++/14.2.1/bits/uses_allocator.h \
  /usr/include/c++/14.2.1/bits/uses_allocator_args.h \
- /usr/include/c++/14.2.1/tuple /usr/include/c++/14.2.1/bits/ranges_util.h \
- /usr/include/c++/14.2.1/iostream /usr/include/c++/14.2.1/ostream \
- /usr/include/c++/14.2.1/ios /usr/include/c++/14.2.1/bits/ios_base.h \
+ /usr/include/c++/14.2.1/tuple /usr/include/c++/14.2.1/functional \
+ /usr/include/c++/14.2.1/bits/std_function.h \
+ /usr/include/c++/14.2.1/typeinfo /usr/include/c++/14.2.1/unordered_map \
+ /usr/include/c++/14.2.1/bits/unordered_map.h \
+ /usr/include/c++/14.2.1/bits/hashtable.h \
+ /usr/include/c++/14.2.1/bits/hashtable_policy.h \
+ /usr/include/c++/14.2.1/ext/aligned_buffer.h \
+ /usr/include/c++/14.2.1/bits/enable_special_members.h \
+ /usr/include/c++/14.2.1/bits/node_handle.h \
+ /usr/include/c++/14.2.1/bits/erase_if.h /usr/include/c++/14.2.1/vector \
+ /usr/include/c++/14.2.1/bits/stl_uninitialized.h \
+ /usr/include/c++/14.2.1/bits/stl_vector.h \
+ /usr/include/c++/14.2.1/bits/stl_bvector.h \
+ /usr/include/c++/14.2.1/bits/vector.tcc /usr/include/c++/14.2.1/array \
+ /usr/include/c++/14.2.1/iterator \
+ /usr/include/c++/14.2.1/bits/stream_iterator.h \
+ /usr/include/c++/14.2.1/bits/streambuf_iterator.h \
+ /usr/include/c++/14.2.1/streambuf \
+ /usr/include/c++/14.2.1/bits/ios_base.h \
  /usr/include/c++/14.2.1/ext/atomicity.h \
  /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/gthr.h \
  /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/gthr-default.h \
@@ -285,81 +314,168 @@ CMakeFiles/practice11.dir/main.cpp.o: \
  /usr/include/bits/types/struct_sched_param.h /usr/include/bits/cpu-set.h \
  /usr/include/time.h /usr/include/bits/time.h /usr/include/bits/timex.h \
  /usr/include/bits/types/struct_tm.h \
- /usr/include/bits/types/struct_itimerspec.h /usr/include/bits/setjmp.h \
- /usr/include/bits/types/struct___jmp_buf_tag.h \
+ /usr/include/bits/types/struct_itimerspec.h \
  /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/atomic_word.h \
  /usr/include/sys/single_threaded.h \
  /usr/include/c++/14.2.1/bits/locale_classes.h \
  /usr/include/c++/14.2.1/bits/locale_classes.tcc \
  /usr/include/c++/14.2.1/system_error \
  /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/error_constants.h \
- /usr/include/c++/14.2.1/streambuf \
+ /usr/include/c++/14.2.1/stdexcept /usr/include/c++/14.2.1/exception \
+ /usr/include/c++/14.2.1/bits/exception_ptr.h \
+ /usr/include/c++/14.2.1/bits/cxxabi_init_exception.h \
+ /usr/include/c++/14.2.1/bits/nested_exception.h \
  /usr/include/c++/14.2.1/bits/streambuf.tcc \
+ /usr/include/c++/14.2.1/memory \
+ /usr/include/c++/14.2.1/bits/stl_raw_storage_iter.h \
+ /usr/include/c++/14.2.1/bits/align.h \
+ /usr/include/c++/14.2.1/bits/unique_ptr.h \
+ /usr/include/c++/14.2.1/ostream /usr/include/c++/14.2.1/ios \
  /usr/include/c++/14.2.1/bits/basic_ios.h \
  /usr/include/c++/14.2.1/bits/locale_facets.h \
  /usr/include/c++/14.2.1/cwctype /usr/include/wctype.h \
  /usr/include/bits/wctype-wchar.h \
  /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/ctype_base.h \
- /usr/include/c++/14.2.1/bits/streambuf_iterator.h \
  /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/ctype_inline.h \
  /usr/include/c++/14.2.1/bits/locale_facets.tcc \
  /usr/include/c++/14.2.1/bits/basic_ios.tcc \
- /usr/include/c++/14.2.1/bits/ostream.tcc /usr/include/c++/14.2.1/istream \
- /usr/include/c++/14.2.1/bits/istream.tcc /usr/include/c++/14.2.1/chrono \
- /usr/include/c++/14.2.1/bits/chrono.h /usr/include/c++/14.2.1/ratio \
- /usr/include/c++/14.2.1/ctime \
- /usr/include/c++/14.2.1/bits/parse_numbers.h \
- /usr/include/c++/14.2.1/sstream /usr/include/c++/14.2.1/bits/sstream.tcc \
- /usr/include/c++/14.2.1/vector \
- /usr/include/c++/14.2.1/bits/stl_uninitialized.h \
- /usr/include/c++/14.2.1/bits/stl_vector.h \
- /usr/include/c++/14.2.1/bits/stl_bvector.h \
- /usr/include/c++/14.2.1/bits/vector.tcc \
- /usr/include/c++/14.2.1/bits/stl_algo.h \
- /usr/include/c++/14.2.1/bits/algorithmfwd.h \
- /usr/include/c++/14.2.1/bits/stl_heap.h \
- /usr/include/c++/14.2.1/bits/uniform_int_dist.h \
- /usr/include/c++/14.2.1/bits/stl_tempbuf.h \
+ /usr/include/c++/14.2.1/bits/ostream.tcc \
  /usr/include/c++/14.2.1/bits/shared_ptr.h \
  /usr/include/c++/14.2.1/bits/shared_ptr_base.h \
  /usr/include/c++/14.2.1/bits/allocated_ptr.h \
- /usr/include/c++/14.2.1/bits/unique_ptr.h \
- /usr/include/c++/14.2.1/ext/aligned_buffer.h \
  /usr/include/c++/14.2.1/ext/concurrence.h \
- /usr/include/c++/14.2.1/bits/align.h \
- /usr/include/c++/14.2.1/bits/chrono_io.h /usr/include/c++/14.2.1/iomanip \
+ /usr/include/c++/14.2.1/bits/shared_ptr_atomic.h \
+ /usr/include/c++/14.2.1/bits/atomic_base.h \
+ /usr/include/c++/14.2.1/bits/atomic_lockfree_defines.h \
+ /usr/include/c++/14.2.1/bits/atomic_wait.h /usr/include/unistd.h \
+ /usr/include/bits/posix_opt.h /usr/include/bits/environments.h \
+ /usr/include/bits/confname.h /usr/include/bits/getopt_posix.h \
+ /usr/include/bits/getopt_core.h /usr/include/bits/unistd_ext.h \
+ /usr/include/linux/close_range.h /usr/include/syscall.h \
+ /usr/include/sys/syscall.h /usr/include/asm/unistd.h \
+ /usr/include/asm/unistd_64.h /usr/include/bits/syscall.h \
+ /usr/include/c++/14.2.1/bits/std_mutex.h \
+ /usr/include/c++/14.2.1/backward/auto_ptr.h \
+ /usr/include/c++/14.2.1/bits/ranges_uninitialized.h \
+ /usr/include/c++/14.2.1/pstl/glue_memory_defs.h \
+ /usr/include/c++/14.2.1/numeric \
+ /usr/include/c++/14.2.1/bits/stl_numeric.h \
+ /usr/include/c++/14.2.1/pstl/glue_numeric_defs.h \
+ /usr/include/c++/14.2.1/utility \
+ /usr/include/c++/14.2.1/bits/stl_relops.h /usr/include/c++/14.2.1/atomic \
+ /usr/include/c++/14.2.1/ratio /usr/include/c++/14.2.1/scoped_allocator \
+ /usr/include/c++/14.2.1/typeindex /usr/include/c++/14.2.1/any \
+ /usr/include/c++/14.2.1/optional /usr/include/c++/14.2.1/variant \
+ /usr/include/c++/14.2.1/bits/parse_numbers.h \
+ /usr/include/c++/14.2.1/ranges /usr/include/c++/14.2.1/span \
+ /usr/include/c++/14.2.1/source_location /usr/include/c++/14.2.1/version \
+ /usr/include/c++/14.2.1/csignal /usr/include/signal.h \
+ /usr/include/bits/signum-generic.h /usr/include/bits/signum-arch.h \
+ /usr/include/bits/types/sig_atomic_t.h \
+ /usr/include/bits/types/siginfo_t.h /usr/include/bits/types/__sigval_t.h \
+ /usr/include/bits/siginfo-arch.h /usr/include/bits/siginfo-consts.h \
+ /usr/include/bits/siginfo-consts-arch.h \
+ /usr/include/bits/types/sigval_t.h /usr/include/bits/types/sigevent_t.h \
+ /usr/include/bits/sigevent-consts.h /usr/include/bits/sigaction.h \
+ /usr/include/bits/sigcontext.h /usr/include/bits/types/stack_t.h \
+ /usr/include/sys/ucontext.h /usr/include/bits/sigstack.h \
+ /usr/include/bits/sigstksz.h /usr/include/bits/ss_flags.h \
+ /usr/include/bits/types/struct_sigstack.h /usr/include/bits/sigthread.h \
+ /usr/include/bits/signal_ext.h /usr/include/c++/14.2.1/cstring \
+ /usr/include/c++/14.2.1/ctime /usr/include/c++/14.2.1/ccomplex \
+ /usr/include/c++/14.2.1/complex /usr/include/c++/14.2.1/sstream \
+ /usr/include/c++/14.2.1/istream /usr/include/c++/14.2.1/bits/istream.tcc \
+ /usr/include/c++/14.2.1/bits/sstream.tcc /usr/include/c++/14.2.1/cfenv \
+ /usr/include/c++/14.2.1/fenv.h /usr/include/fenv.h \
+ /usr/include/bits/fenv.h /usr/include/c++/14.2.1/cinttypes \
+ /usr/include/c++/14.2.1/cstdalign \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/14.2.1/include/stdalign.h \
+ /usr/include/c++/14.2.1/cstdbool \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/14.2.1/include/stdbool.h \
+ /usr/include/c++/14.2.1/ctgmath /usr/include/c++/14.2.1/cuchar \
+ /usr/include/uchar.h /usr/include/c++/14.2.1/deque \
+ /usr/include/c++/14.2.1/bits/stl_deque.h \
+ /usr/include/c++/14.2.1/bits/deque.tcc /usr/include/c++/14.2.1/fstream \
+ /usr/include/c++/14.2.1/bits/codecvt.h \
+ /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/basic_file.h \
+ /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/c++io.h \
+ /usr/include/c++/14.2.1/bits/fstream.tcc /usr/include/c++/14.2.1/iomanip \
  /usr/include/c++/14.2.1/locale \
  /usr/include/c++/14.2.1/bits/locale_facets_nonio.h \
  /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/time_members.h \
  /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/messages_members.h \
- /usr/include/libintl.h /usr/include/c++/14.2.1/bits/codecvt.h \
+ /usr/include/libintl.h \
  /usr/include/c++/14.2.1/bits/locale_facets_nonio.tcc \
  /usr/include/c++/14.2.1/bits/locale_conv.h \
  /usr/include/c++/14.2.1/bits/quoted_string.h \
- /usr/include/c++/14.2.1/format /usr/include/c++/14.2.1/array \
- /usr/include/c++/14.2.1/charconv /usr/include/c++/14.2.1/optional \
- /usr/include/c++/14.2.1/bits/enable_special_members.h \
- /usr/include/c++/14.2.1/span /usr/include/c++/14.2.1/variant \
- /usr/include/c++/14.2.1/bits/ranges_algobase.h \
- /usr/include/c++/14.2.1/bits/unicode.h \
- /usr/include/c++/14.2.1/bits/unicode-data.h \
- /usr/include/c++/14.2.1/random /usr/include/c++/14.2.1/bits/random.h \
- /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/opt_random.h \
- /usr/include/c++/14.2.1/bits/random.tcc /usr/include/c++/14.2.1/numeric \
- /usr/include/c++/14.2.1/bits/stl_numeric.h \
- /usr/include/c++/14.2.1/pstl/glue_numeric_defs.h \
- /usr/include/c++/14.2.1/pstl/execution_defs.h \
- /usr/include/c++/14.2.1/map /usr/include/c++/14.2.1/bits/stl_tree.h \
- /usr/include/c++/14.2.1/bits/node_handle.h \
+ /usr/include/c++/14.2.1/iostream /usr/include/c++/14.2.1/list \
+ /usr/include/c++/14.2.1/bits/stl_list.h \
+ /usr/include/c++/14.2.1/bits/list.tcc /usr/include/c++/14.2.1/map \
+ /usr/include/c++/14.2.1/bits/stl_tree.h \
  /usr/include/c++/14.2.1/bits/stl_map.h \
  /usr/include/c++/14.2.1/bits/stl_multimap.h \
- /usr/include/c++/14.2.1/bits/erase_if.h \
+ /usr/include/c++/14.2.1/queue /usr/include/c++/14.2.1/bits/stl_queue.h \
+ /usr/include/c++/14.2.1/set /usr/include/c++/14.2.1/bits/stl_set.h \
+ /usr/include/c++/14.2.1/bits/stl_multiset.h \
+ /usr/include/c++/14.2.1/stack /usr/include/c++/14.2.1/bits/stl_stack.h \
+ /usr/include/c++/14.2.1/valarray \
+ /usr/include/c++/14.2.1/bits/valarray_array.h \
+ /usr/include/c++/14.2.1/bits/valarray_array.tcc \
+ /usr/include/c++/14.2.1/bits/valarray_before.h \
+ /usr/include/c++/14.2.1/bits/slice_array.h \
+ /usr/include/c++/14.2.1/bits/valarray_after.h \
+ /usr/include/c++/14.2.1/bits/gslice.h \
+ /usr/include/c++/14.2.1/bits/gslice_array.h \
+ /usr/include/c++/14.2.1/bits/mask_array.h \
+ /usr/include/c++/14.2.1/bits/indirect_array.h \
+ /usr/include/c++/14.2.1/chrono /usr/include/c++/14.2.1/bits/chrono.h \
+ /usr/include/c++/14.2.1/bits/chrono_io.h /usr/include/c++/14.2.1/format \
+ /usr/include/c++/14.2.1/charconv /usr/include/c++/14.2.1/bits/unicode.h \
+ /usr/include/c++/14.2.1/bits/unicode-data.h \
+ /usr/include/c++/14.2.1/codecvt \
+ /usr/include/c++/14.2.1/condition_variable \
+ /usr/include/c++/14.2.1/bits/unique_lock.h \
+ /usr/include/c++/14.2.1/stop_token \
+ /usr/include/c++/14.2.1/bits/std_thread.h \
+ /usr/include/c++/14.2.1/semaphore \
+ /usr/include/c++/14.2.1/bits/semaphore_base.h \
+ /usr/include/c++/14.2.1/bits/atomic_timed_wait.h \
+ /usr/include/c++/14.2.1/bits/this_thread_sleep.h /usr/include/sys/time.h \
+ /usr/include/semaphore.h /usr/include/bits/semaphore.h \
+ /usr/include/c++/14.2.1/forward_list \
+ /usr/include/c++/14.2.1/bits/forward_list.h \
+ /usr/include/c++/14.2.1/bits/forward_list.tcc \
+ /usr/include/c++/14.2.1/future /usr/include/c++/14.2.1/mutex \
+ /usr/include/c++/14.2.1/bits/atomic_futex.h \
+ /usr/include/c++/14.2.1/random /usr/include/c++/14.2.1/bits/random.h \
+ /usr/include/c++/14.2.1/x86_64-pc-linux-gnu/bits/opt_random.h \
+ /usr/include/c++/14.2.1/bits/random.tcc /usr/include/c++/14.2.1/regex \
+ /usr/include/c++/14.2.1/bits/regex_constants.h \
+ /usr/include/c++/14.2.1/bits/regex_error.h \
+ /usr/include/c++/14.2.1/bits/regex_automaton.h \
+ /usr/include/c++/14.2.1/bits/regex_automaton.tcc \
+ /usr/include/c++/14.2.1/bits/regex_scanner.h \
+ /usr/include/c++/14.2.1/bits/regex_scanner.tcc \
+ /usr/include/c++/14.2.1/bits/regex_compiler.h \
+ /usr/include/c++/14.2.1/bits/regex_compiler.tcc \
+ /usr/include/c++/14.2.1/bits/regex.h \
+ /usr/include/c++/14.2.1/bits/regex.tcc \
+ /usr/include/c++/14.2.1/bits/regex_executor.h \
+ /usr/include/c++/14.2.1/bits/regex_executor.tcc \
+ /usr/include/c++/14.2.1/thread /usr/include/c++/14.2.1/unordered_set \
+ /usr/include/c++/14.2.1/bits/unordered_set.h \
+ /usr/include/c++/14.2.1/shared_mutex /usr/include/c++/14.2.1/filesystem \
+ /usr/include/c++/14.2.1/bits/fs_fwd.h \
+ /usr/include/c++/14.2.1/bits/fs_path.h \
+ /usr/include/c++/14.2.1/bits/fs_dir.h \
+ /usr/include/c++/14.2.1/bits/fs_ops.h \
+ /usr/include/c++/14.2.1/memory_resource /usr/include/c++/14.2.1/barrier \
+ /usr/include/c++/14.2.1/latch /usr/include/c++/14.2.1/syncstream \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/vec3.hpp \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/./ext/vector_bool3.hpp \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/./ext/../detail/type_vec3.hpp \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/./ext/../detail/qualifier.hpp \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/./ext/../detail/setup.hpp \
- /usr/include/c++/14.2.1/cassert /usr/include/assert.h \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/./ext/../detail/../simd/platform.h \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/./ext/../detail/_swizzle_func.hpp \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/./ext/../detail/type_vec3.inl \
@@ -500,7 +616,6 @@ CMakeFiles/practice11.dir/main.cpp.o: \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/gtx/../glm.hpp \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/gtx/../detail/_fixes.hpp \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/gtx/../detail/setup.hpp \
- /usr/include/c++/14.2.1/climits /usr/include/c++/14.2.1/cfloat \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/gtx/../fwd.hpp \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/gtx/../packing.hpp \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/gtx/../detail/func_packing.inl \
@@ -563,10 +678,5 @@ CMakeFiles/practice11.dir/main.cpp.o: \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/gtx/../gtx/dual_quaternion.hpp \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/gtx/../gtx/dual_quaternion.inl \
  /home/petruekhin/Projects/graphics-course-practice/practice11/glm/gtx/string_cast.inl \
- /usr/include/c++/14.2.1/cstdarg \
  /home/petruekhin/Projects/graphics-course-practice/practice11/obj_parser.hpp \
- /usr/include/c++/14.2.1/filesystem /usr/include/c++/14.2.1/bits/fs_fwd.h \
- /usr/include/c++/14.2.1/bits/fs_path.h /usr/include/c++/14.2.1/codecvt \
- /usr/include/c++/14.2.1/bits/fs_dir.h \
- /usr/include/c++/14.2.1/bits/fs_ops.h \
  /home/petruekhin/Projects/graphics-course-practice/practice11/stb_image.h
