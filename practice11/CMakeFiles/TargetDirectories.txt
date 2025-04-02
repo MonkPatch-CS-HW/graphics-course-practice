@@ -1,0 +1,13 @@
+/home/petruekhin/Projects/graphics-course-practice/practice11/CMakeFiles/practice11.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/CMakeFiles/edit_cache.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/CMakeFiles/rebuild_cache.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/CMakeFiles/list_install_components.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/CMakeFiles/install.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/CMakeFiles/install/local.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/CMakeFiles/install/strip.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/glm/CMakeFiles/edit_cache.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/glm/CMakeFiles/rebuild_cache.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/glm/CMakeFiles/list_install_components.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/glm/CMakeFiles/install.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/glm/CMakeFiles/install/local.dir
+/home/petruekhin/Projects/graphics-course-practice/practice11/glm/CMakeFiles/install/strip.dir
