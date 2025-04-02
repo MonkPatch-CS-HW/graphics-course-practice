@@ -116,9 +116,11 @@ layout (location = 0) out vec4 out_color;
 
 in vec2 texcoord;
 
+uniform sampler2D txt;
+
 void main()
 {
-    out_color = vec4(texcoord, 0.0, 1.0);
+    out_color = vec4(1.0, 1.0, 1.0, texture(txt, texcoord).r);
 }
 )";
 
@@ -175,7 +177,7 @@ struct particle
         p.position.y = 0.f;
         p.position.z = std::uniform_real_distribution<float>{-0.2f, 0.2f}(rng);
 
-        p.size = std::uniform_real_distribution<float>{0.2f, 0.4f}(rng);
+        p.size = std::uniform_real_distribution<float>{0.2f, 0.6f}(rng);
         p.velocity.x = std::uniform_real_distribution<float>{-0.2f, 0.2f}(rng);
         p.velocity.y = std::uniform_real_distribution<float>{0.f, 1.f}(rng);
         p.velocity.z = std::uniform_real_distribution<float>{-0.2f, 0.2f}(rng);
@@ -185,6 +187,24 @@ struct particle
         return p;
     }
 };
+
+GLuint load_texture(std::string const & path)
+{
+    int width, height, channels;
+    auto pixels = stbi_load(path.data(), &width, &height, &channels, 4);
+
+    GLuint result;
+    glGenTextures(1, &result);
+    glBindTexture(GL_TEXTURE_2D, result);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(pixels);
+
+    return result;
+}
 
 int main() try
 {
@@ -257,6 +277,11 @@ int main() try
     const std::string project_root = PROJECT_ROOT;
     const std::string particle_texture_path = project_root + "/particle.png";
 
+    GLuint texture = load_texture(particle_texture_path);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
     glPointSize(5.f);
 
     auto last_frame_start = std::chrono::high_resolution_clock::now();
@@ -319,7 +344,9 @@ int main() try
             camera_rotation += 3.f * dt;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
         float near = 0.1f;
         float far = 100.f;
@@ -342,16 +369,13 @@ int main() try
 
         for (auto & p : particles)
         {
-            if (p.position.y < -1.f || p.position.y > 1.f || p.position.x < -1.f || p.position.x > 1.f || p.position.z < -1.f || p.position.z > 1.f)
+            if (p.position.y < -1.f || p.position.y > 1.f || p.position.x < -1.f || p.position.x > 1.f || p.position.z < -1.f || p.position.z > 1.f || p.velocity.length() < 1.f || p.size < 0.1f)
             {
                 p = particle::random(rng);
             }
             
             p.position += p.velocity * dt * 2.f;
-            if (p.velocity.length() > 0.4f)
-            {
-                p.velocity *= std::exp(-0.3 * dt);
-            }
+            p.velocity *= std::exp(-dt);
 
             p.size *= std::exp(-0.5 * dt);
             p.angle += p.angular_velocity * dt * 5.f;
