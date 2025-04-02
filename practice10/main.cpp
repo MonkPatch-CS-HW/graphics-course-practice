@@ -92,7 +92,7 @@ void main()
 
     float lightness = ambient_light + max(0.0, dot(normalize(normal), light_direction));
 
-    vec3 albedo = texture(albedo_texture, texcoord).rgb;
+    vec3 albedo = normal * 0.5 + 0.5;
 
     out_color = vec4(lightness * albedo, 1.0);
 }
