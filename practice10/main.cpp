@@ -89,15 +89,16 @@ const float PI = 3.141592653589793;
 
 void main()
 {
-    float ambient_light = 0.2;
-
-    float lightness = ambient_light + max(0.0, dot(normalize(normal), light_direction));
-
     vec3 bitangent = cross(normal, tangent);
     mat3 tbn = mat3(tangent, bitangent, normal);
 
     vec3 real_normal = tbn * (texture(normal_texture, texcoord).xyz * 2.0 - 1.0);
-    vec3 albedo = real_normal * 0.5 + 0.5;
+
+    float ambient_light = 0.2;
+
+    float lightness = ambient_light + max(0.0, dot(normalize(real_normal), light_direction));
+
+    vec3 albedo = texture(albedo_texture, texcoord).rgb;
 
     out_color = vec4(lightness * albedo, 1.0);
 }
