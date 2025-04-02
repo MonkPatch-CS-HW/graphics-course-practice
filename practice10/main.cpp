@@ -113,6 +113,61 @@ void main()
 }
 )";
 
+const char vertex_shader_environment_source[] =
+R"(#version 330 core
+
+out vec3 position;
+
+uniform mat4 view;
+uniform mat4 projection;
+
+const vec2 VERTICES[6] = vec2[6](
+    vec2(0.0, 0.0),
+    vec2(1.0, 0.0),
+    vec2(1.0, 1.0),
+    vec2(0.0, 0.0),
+    vec2(1.0, 1.0),
+    vec2(0.0, 1.0)
+);
+
+void main()
+{
+    vec2 vertex = VERTICES[gl_VertexID];
+    gl_Position = vec4(vertex * 2.0 - 1.0, 0.0, 1.0);
+
+    mat4 view_projection_inverse = inverse(projection * view);
+    vec4 clip_space = view_projection_inverse * gl_Position;
+    position = clip_space.xyz / clip_space.w;
+}
+)";
+
+const char fragment_shader_environment_source[] =
+R"(#version 330 core
+
+in vec3 position;
+
+layout (location = 0) out vec4 out_color;
+
+uniform vec3 camera_position;
+uniform sampler2D environment_texture;
+
+const float PI = 3.141592653589793;
+
+void main()
+{
+    vec3 view_direction = normalize(position - camera_position);
+    vec2 texcoord = vec2(
+        atan(view_direction.z, view_direction.x) / PI * 0.5 + 0.5,
+        -atan(view_direction.y, length(view_direction.xz)) / PI + 0.5
+    );
+    vec3 environment_color = texture(environment_texture, texcoord).rgb;
+    
+    out_color = vec4(environment_color, 1.0);
+}
+)";
+
+
+
 GLuint create_shader(GLenum type, const char * source)
 {
     GLuint result = glCreateShader(type);
@@ -260,6 +315,10 @@ int main() try
     auto fragment_shader = create_shader(GL_FRAGMENT_SHADER, fragment_shader_source);
     auto program = create_program(vertex_shader, fragment_shader);
 
+    auto vertex_shader_environment = create_shader(GL_VERTEX_SHADER, vertex_shader_environment_source);
+    auto fragment_shader_environment = create_shader(GL_FRAGMENT_SHADER, fragment_shader_environment_source);
+    auto program_environment = create_program(vertex_shader_environment, fragment_shader_environment);
+
     GLuint model_location = glGetUniformLocation(program, "model");
     GLuint view_location = glGetUniformLocation(program, "view");
     GLuint projection_location = glGetUniformLocation(program, "projection");
@@ -268,6 +327,11 @@ int main() try
     GLuint albedo_texture_location = glGetUniformLocation(program, "albedo_texture");
     GLuint normal_texture_location = glGetUniformLocation(program, "normal_texture");
     GLuint environment_texture_location = glGetUniformLocation(program, "environment_texture");
+
+    GLuint view_location_environment = glGetUniformLocation(program_environment, "view");
+    GLuint projection_location_environment = glGetUniformLocation(program_environment, "projection");
+    GLuint camera_position_location_environment = glGetUniformLocation(program_environment, "camera_position");
+    GLuint environment_texture_location_environment = glGetUniformLocation(program_environment, "environment_texture");
 
     GLuint sphere_vao, sphere_vbo, sphere_ebo;
     glGenVertexArrays(1, &sphere_vao);
@@ -353,11 +417,6 @@ int main() try
         if (button_down[SDLK_RIGHT])
             view_azimuth += 2.f * dt;
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-
         float near = 0.1f;
         float far = 100.f;
         float top = near;
@@ -377,15 +436,7 @@ int main() try
 
         glm::vec3 camera_position = (glm::inverse(view) * glm::vec4(0.f, 0.f, 0.f, 1.f)).xyz();
 
-        glUseProgram(program);
-        glUniformMatrix4fv(model_location, 1, GL_FALSE, reinterpret_cast<float *>(&model));
-        glUniformMatrix4fv(view_location, 1, GL_FALSE, reinterpret_cast<float *>(&view));
-        glUniformMatrix4fv(projection_location, 1, GL_FALSE, reinterpret_cast<float *>(&projection));
-        glUniform3fv(light_direction_location, 1, reinterpret_cast<float *>(&light_direction));
-        glUniform3fv(camera_position_location, 1, reinterpret_cast<float *>(&camera_position));
-        glUniform1i(albedo_texture_location, 0);
-        glUniform1i(normal_texture_location, 1);
-        glUniform1i(environment_texture_location, 2);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, albedo_texture);
@@ -395,6 +446,28 @@ int main() try
 
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, environment_texture);
+
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_DEPTH_TEST);
+        glUseProgram(program_environment);
+        glUniformMatrix4fv(view_location_environment, 1, GL_FALSE, reinterpret_cast<float *>(&view));
+        glUniformMatrix4fv(projection_location_environment, 1, GL_FALSE, reinterpret_cast<float *>(&projection));
+        glUniform3fv(camera_position_location_environment, 1, reinterpret_cast<float *>(&camera_position));
+        glUniform1i(environment_texture_location_environment, 2);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glUseProgram(program);
+        glUniformMatrix4fv(model_location, 1, GL_FALSE, reinterpret_cast<float *>(&model));
+        glUniformMatrix4fv(view_location, 1, GL_FALSE, reinterpret_cast<float *>(&view));
+        glUniformMatrix4fv(projection_location, 1, GL_FALSE, reinterpret_cast<float *>(&projection));
+        glUniform3fv(light_direction_location, 1, reinterpret_cast<float *>(&light_direction));
+        glUniform3fv(camera_position_location, 1, reinterpret_cast<float *>(&camera_position));
+        glUniform1i(albedo_texture_location, 0);
+        glUniform1i(normal_texture_location, 1);
+        glUniform1i(environment_texture_location, 2);
 
         glBindVertexArray(sphere_vao);
         glDrawElements(GL_TRIANGLES, sphere_index_count, GL_UNSIGNED_INT, nullptr);
