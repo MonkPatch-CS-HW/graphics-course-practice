@@ -20,6 +20,8 @@ if(APPLE)
 	list(APPEND GLEW_LIBRARIES "${GLEW_LIBRARY}")
 endif()
 
+add_subdirectory(glm)
+
 set(TARGET_NAME "${PROJECT_NAME}")
 
 set(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -31,6 +33,7 @@ target_include_directories(${TARGET_NAME} PUBLIC
 	"${OPENGL_INCLUDE_DIRS}"
 )
 target_link_libraries(${TARGET_NAME} PUBLIC
+	glm
 	"${GLEW_LIBRARIES}"
 	"${SDL2_LIBRARIES}"
 	"${OPENGL_LIBRARIES}"
