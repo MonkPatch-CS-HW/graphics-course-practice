@@ -159,6 +159,7 @@ struct particle
 {
     glm::vec3 position;
     float size;
+    glm::vec3 velocity;
 };
 
 int main() try
@@ -219,6 +220,9 @@ int main() try
         p.position.z = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
 
         p.size = std::uniform_real_distribution<float>{0.2f, 0.4f}(rng);
+        p.velocity.x = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
+        p.velocity.y = std::uniform_real_distribution<float>{0.f, 1.f}(rng);
+        p.velocity.z = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
     }
 
     GLuint vao, vbo;
@@ -314,6 +318,13 @@ int main() try
         glm::mat4 projection = glm::perspective(glm::pi<float>() / 2.f, (1.f * width) / height, near, far);
 
         glm::vec3 camera_position = (glm::inverse(view) * glm::vec4(0.f, 0.f, 0.f, 1.f)).xyz();
+
+        for (auto & p : particles)
+        {
+            p.position += p.velocity * dt * 20.f;
+            p.velocity *= std::exp(-5 * dt);
+            p.size *= std::exp(-dt);
+        }
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, particles.size() * sizeof(particle), particles.data(), GL_STATIC_DRAW);
