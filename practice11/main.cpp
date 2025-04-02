@@ -69,6 +69,8 @@ uniform vec3 camera_position;
 
 in float size[];
 
+out vec2 texcoord;
+
 layout (points) in;
 layout (triangle_strip, max_vertices = 4) out;
 
@@ -77,12 +79,16 @@ void main()
     vec3 center = gl_in[0].gl_Position.xyz;
     float size = size[0];
     gl_Position = projection * view * model * vec4(center + size * vec3(-1.0, -1.0, 0.0), 1.0);
+    texcoord = vec2(0.0, 0.0);
     EmitVertex();   
     gl_Position = projection * view * model * vec4(center + size * vec3(1.0, -1.0, 0.0), 1.0);
+    texcoord = vec2(1.0, 0.0);
     EmitVertex();
     gl_Position = projection * view * model * vec4(center + size * vec3(-1.0, 1.0, 0.0), 1.0);
+    texcoord = vec2(0.0, 1.0);
     EmitVertex();
     gl_Position = projection * view * model * vec4(center + size * vec3(1.0, 1.0, 0.0), 1.0);
+    texcoord = vec2(1.0, 1.0);
     EmitVertex();
     EndPrimitive();
 }
@@ -94,9 +100,11 @@ R"(#version 330 core
 
 layout (location = 0) out vec4 out_color;
 
+in vec2 texcoord;
+
 void main()
 {
-    out_color = vec4(1.0, 0.0, 0.0, 1.0);
+    out_color = vec4(texcoord, 0.0, 1.0);
 }
 )";
 
