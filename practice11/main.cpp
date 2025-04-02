@@ -49,13 +49,16 @@ R"(#version 330 core
 
 layout (location = 0) in vec3 in_position;
 layout (location = 1) in float in_size;
+layout (location = 2) in float in_angle;
 
 out float size;
+out float angle;
 
 void main()
 {
     gl_Position = vec4(in_position, 1.0);
     size = in_size;
+    angle = in_angle;
 }
 )";
 
@@ -68,6 +71,7 @@ uniform mat4 projection;
 uniform vec3 camera_position;
 
 in float size[];
+in float angle[];
 
 out vec2 texcoord;
 
@@ -93,7 +97,8 @@ void main()
     float size = size[0];
     for (int i = 0; i < 4; i++) {
         vec2 vertex = VERTICES[i];
-        vec4 point = vec4(center + size * project_to_camera * vec3(vertex, 0.0), 1.0);
+        vec2 tmp = vec2(cos(angle[0] + atan(vertex.y, vertex.x)), sin(angle[0] + atan(vertex.y, vertex.x))) * size;
+        vec4 point = vec4(center + size * project_to_camera * vec3(tmp, 0.0), 1.0);
         gl_Position = projection * view * model * point;
         texcoord = vertex * 0.5 + 0.5;
         EmitVertex();
@@ -160,6 +165,8 @@ struct particle
     glm::vec3 position;
     float size;
     glm::vec3 velocity;
+    float angle;
+    float angular_velocity;
 };
 
 int main() try
@@ -223,6 +230,9 @@ int main() try
         p.velocity.x = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
         p.velocity.y = std::uniform_real_distribution<float>{0.f, 1.f}(rng);
         p.velocity.z = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
+
+        p.angle = std::uniform_real_distribution<float>{0.f, 2.f * glm::pi<float>()}(rng);
+        p.angular_velocity = std::uniform_real_distribution<float>{-1.f, 1.f}(rng);
     }
 
     GLuint vao, vbo;
@@ -237,6 +247,9 @@ int main() try
 
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(particle), (void*)(offsetof(particle, size)));
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(particle), (void*)(offsetof(particle, angle)));
 
     const std::string project_root = PROJECT_ROOT;
     const std::string particle_texture_path = project_root + "/particle.png";
@@ -321,9 +334,10 @@ int main() try
 
         for (auto & p : particles)
         {
-            p.position += p.velocity * dt * 20.f;
-            p.velocity *= std::exp(-5 * dt);
-            p.size *= std::exp(-dt);
+            p.position += p.velocity * dt;
+            p.velocity *= std::exp(-2 * dt);
+            p.size *= std::exp(-0.5 * dt);
+            p.angle += p.angular_velocity * dt * 5.f;
         }
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
