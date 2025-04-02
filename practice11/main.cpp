@@ -74,22 +74,30 @@ out vec2 texcoord;
 layout (points) in;
 layout (triangle_strip, max_vertices = 4) out;
 
+vec2 VERTICES[4] = vec2[4](
+    vec2(-1.0, -1.0),
+    vec2(1.0, -1.0),
+    vec2(-1.0, 1.0),
+    vec2(1.0, 1.0)
+);
+
+
 void main()
 {
     vec3 center = gl_in[0].gl_Position.xyz;
+    vec3 z = normalize(camera_position - center);
+    vec3 x = normalize(cross(vec3(0.0, 1.0, 0.0), z));
+    vec3 y = cross(z, x);
+    mat3 project_to_camera = mat3(x, y, z);
+
     float size = size[0];
-    gl_Position = projection * view * model * vec4(center + size * vec3(-1.0, -1.0, 0.0), 1.0);
-    texcoord = vec2(0.0, 0.0);
-    EmitVertex();   
-    gl_Position = projection * view * model * vec4(center + size * vec3(1.0, -1.0, 0.0), 1.0);
-    texcoord = vec2(1.0, 0.0);
-    EmitVertex();
-    gl_Position = projection * view * model * vec4(center + size * vec3(-1.0, 1.0, 0.0), 1.0);
-    texcoord = vec2(0.0, 1.0);
-    EmitVertex();
-    gl_Position = projection * view * model * vec4(center + size * vec3(1.0, 1.0, 0.0), 1.0);
-    texcoord = vec2(1.0, 1.0);
-    EmitVertex();
+    for (int i = 0; i < 4; i++) {
+        vec2 vertex = VERTICES[i];
+        vec4 point = vec4(center + size * project_to_camera * vec3(vertex, 0.0), 1.0);
+        gl_Position = projection * view * model * point;
+        texcoord = vertex * 0.5 + 0.5;
+        EmitVertex();
+    }
     EndPrimitive();
 }
 
