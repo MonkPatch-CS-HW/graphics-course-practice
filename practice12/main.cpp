@@ -113,7 +113,12 @@ in vec3 position;
 
 void main()
 {
-    out_color = vec4(1.0, 0.5, 0.5, 1.0);
+    vec3 view_direction = normalize(position - camera_position);
+    vec2 intersection = intersect_bbox(camera_position, view_direction);
+    float tmin = max(0.0, intersection.x);
+    float tmax = intersection.y;
+    
+    out_color = vec4(vec3((tmax - tmin) / 4.0), 1.0);
 }
 )";
 
