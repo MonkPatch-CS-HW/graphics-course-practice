@@ -121,6 +121,7 @@ void main()
     vec2 intersection = intersect_bbox(camera_position, view_direction);
     float tmin = max(0.0, intersection.x);
     float tmax = intersection.y;
+    vec3 ambient_light = 4.0 * vec3(0.6, 0.8, 1.0);
 
     vec3 light_color = vec3(16.0);
     vec3 color = vec3(0.0);
@@ -149,7 +150,7 @@ void main()
             light_optical_depth += light_dt * light_density * extinction;
         }
 
-        color += light_color * exp(-light_optical_depth) * exp(-optical_depth) * dt * density * scattering / 4.0 / PI;
+        color += (light_color * exp(-light_optical_depth) + ambient_light) * exp(-optical_depth) * dt * density * scattering / 4.0 / PI;
     }
 
     float opacity = 1.0 - exp(-optical_depth);
