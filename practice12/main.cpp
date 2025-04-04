@@ -72,6 +72,7 @@ uniform vec3 camera_position;
 uniform vec3 light_direction;
 uniform vec3 bbox_min;
 uniform vec3 bbox_max;
+uniform sampler3D cloud_texture;
 
 layout (location = 0) out vec4 out_color;
 
@@ -122,7 +123,9 @@ void main()
     float optical_depth = (tmax - tmin) * absorption;
     float opacity = 1.0 - exp(-optical_depth);
 
-    out_color = vec4(0.6, 0.2, 0.2, opacity);
+    vec3 position = camera_position + view_direction * (tmin + tmax) * 0.5;
+    position = (position - bbox_min) / (bbox_max - bbox_min);
+    out_color = vec4(vec3(texture(cloud_texture, position).r), 1.0);
 }
 )";
 
@@ -245,6 +248,7 @@ int main() try
     GLuint bbox_max_location = glGetUniformLocation(program, "bbox_max");
     GLuint camera_position_location = glGetUniformLocation(program, "camera_position");
     GLuint light_direction_location = glGetUniformLocation(program, "light_direction");
+    GLuint cloud_texture_location = glGetUniformLocation(program, "cloud_texture");
 
     GLuint vao, vbo, ebo;
     glGenVertexArrays(1, &vao);
@@ -264,10 +268,24 @@ int main() try
     const std::string project_root = PROJECT_ROOT;
     const std::string cloud_data_path = project_root + "/disney_cloud.data";
 
-    const glm::ivec3 cloud_texture_size { 126, 86, 154 };
+    std::vector<char> cloud_data(128 * 64 * 64);
+    std::ifstream file(cloud_data_path, std::ios::binary);
+    file.read(cloud_data.data(), cloud_data.size());
 
-    const glm::vec3 cloud_bbox_max = glm::vec3(cloud_texture_size) / 100.f;
-    const glm::vec3 cloud_bbox_min = - cloud_bbox_max;
+    GLuint txt;
+    glActiveTexture(GL_TEXTURE0);
+    glGenTextures(1, &txt);
+    glBindTexture(GL_TEXTURE_3D, txt);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, 128, 64, 64, 0, GL_RED, GL_UNSIGNED_BYTE, cloud_data.data());
+
+    const glm::vec3 cloud_bbox_min{-2.f, -1.f, -1.f};
+    const glm::vec3 cloud_bbox_max{ 2.f,  1.f,  1.f};
 
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
