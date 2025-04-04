@@ -110,6 +110,8 @@ vec2 intersect_bbox(vec3 origin, vec3 direction)
 
 const float PI = 3.1415926535;
 const float absorption = 1.0;
+const float scattering = 4.0;
+const float extinction = absorption + scattering;
 
 in vec3 position;
 
@@ -120,12 +122,38 @@ void main()
     float tmin = max(0.0, intersection.x);
     float tmax = intersection.y;
 
-    float optical_depth = (tmax - tmin) * absorption;
-    float opacity = 1.0 - exp(-optical_depth);
+    vec3 light_color = vec3(16.0);
+    vec3 color = vec3(0.0);
 
-    vec3 position = camera_position + view_direction * (tmin + tmax) * 0.5;
-    position = (position - bbox_min) / (bbox_max - bbox_min);
-    out_color = vec4(vec3(texture(cloud_texture, position).r), 1.0);
+    float optical_depth = 0;
+
+    float dt = (tmax - tmin) / 64.0;
+    for (int i = 0; i < 64; i++) {
+        float t = tmin + i * dt;
+        vec3 position = camera_position + view_direction * t;
+        position = (position - bbox_min) / (bbox_max - bbox_min);
+        float density = texture(cloud_texture, position).r;
+        optical_depth += dt * density * extinction;
+
+        vec2 light_intersection = intersect_bbox(position, light_direction);
+        float light_tmin = max(0.0, light_intersection.x);
+        float light_tmax = light_intersection.y;
+        float light_dt = (light_tmax - light_tmin) / 16.0;
+        float light_optical_depth = 0;
+
+        for (int j = 0; j < 16; j++) {
+            float light_t = light_tmin + j * light_dt;
+            vec3 light_position = position + light_direction * light_t;
+            light_position = (light_position - bbox_min) / (bbox_max - bbox_min);
+            float light_density = texture(cloud_texture, light_position).r;
+            light_optical_depth += light_dt * light_density * extinction;
+        }
+
+        color += light_color * exp(-light_optical_depth) * exp(-optical_depth) * dt * density * scattering / 4.0 / PI;
+    }
+
+    float opacity = 1.0 - exp(-optical_depth);
+    out_color = vec4(color, opacity);
 }
 )";
 
