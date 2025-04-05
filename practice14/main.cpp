@@ -179,6 +179,38 @@ int main() try
     GLuint light_direction_location = glGetUniformLocation(program, "light_direction");
     GLuint bones_location = glGetUniformLocation(program, "bones");
 
+    std::vector<GLuint> query_ids;
+    std::vector<bool> query_free;
+
+    auto take_query = [&]()
+    {
+        for (unsigned long i = 0; i < query_ids.size(); ++i)
+        {
+            if (query_free[i])
+            {
+                query_free[i] = false;
+                return query_ids[i];
+            }
+        }
+        GLuint query_id;
+        glGenQueries(1, &query_id);
+        query_ids.push_back(query_id);
+        query_free.push_back(false);
+        return query_id;
+    };
+
+    auto put_query = [&](GLuint query_id)
+    {
+        for (unsigned long i = 0; i < query_ids.size(); ++i)
+        {
+            if (query_ids[i] == query_id)
+            {
+                query_free[i] = true;
+                return;
+            }
+        }
+    };
+    
     const std::string project_root = PROJECT_ROOT;
     const std::string model_path = project_root + "/bunny/bunny.gltf";
 
@@ -234,6 +266,9 @@ int main() try
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
     float time = 0.f;
+    float last_log = 0.f;
+    unsigned long long last_frames = 0;
+    unsigned long long last_time = 0;
 
     std::map<SDL_Keycode, bool> button_down;
 
@@ -304,6 +339,9 @@ int main() try
         camera_position += camera_move_forward * glm::vec3(-std::sin(camera_rotation), 0.f, std::cos(camera_rotation));
         camera_position += camera_move_sideways * glm::vec3(std::cos(camera_rotation), 0.f, std::sin(camera_rotation));
 
+        auto query_id = take_query();
+        glBeginQuery(GL_TIME_ELAPSED, query_id);
+
         glClearColor(0.8f, 0.8f, 1.f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -340,8 +378,37 @@ int main() try
             glDrawElements(GL_TRIANGLES, mesh.indices.count, mesh.indices.type, reinterpret_cast<void *>(mesh.indices.view.offset));
         }
 
+        glEndQuery(GL_TIME_ELAPSED);
+
+        for (unsigned long i = 0; i < query_ids.size(); ++i)
+        {
+            auto query_id = query_ids[i];
+            if (query_free[i])
+                continue;
+
+            GLuint result;
+            glGetQueryObjectuiv(query_id, GL_QUERY_RESULT_AVAILABLE, &result);
+            if (result)
+            {
+                glGetQueryObjectuiv(query_id, GL_QUERY_RESULT, &result);
+                last_time += result;
+                last_frames++;
+                put_query(query_id);
+            }
+        }
+
         SDL_GL_SwapWindow(window);
+
+        if (time - last_log > 1.f)
+        {
+            std::cout << "Average frame render time: " << last_time / last_frames / 1000000.f << "ms" << std::endl;
+            last_log = time;
+            last_time = 0;
+            last_frames = 0;
+        }
     }
+
+    std::cout << "Average lag: " << query_ids.size() << " frames" << std::endl;
 
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
