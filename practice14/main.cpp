@@ -5,6 +5,7 @@
 #include <SDL2/SDL.h>
 #endif
 
+#include <bits/stdc++.h>
 #include <GL/glew.h>
 
 #include <string_view>
@@ -56,13 +57,14 @@ uniform mat4 projection;
 layout (location = 0) in vec3 in_position;
 layout (location = 1) in vec3 in_normal;
 layout (location = 2) in vec2 in_texcoord;
+layout (location = 3) in vec3 in_offset;
 
 out vec3 normal;
 out vec2 texcoord;
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(in_position, 1.0);
+    gl_Position = projection * view * model * vec4(in_position + in_offset, 1.0);
     normal = mat3(model) * in_normal;
     texcoord = in_texcoord;
 }
@@ -179,6 +181,10 @@ int main() try
     GLuint light_direction_location = glGetUniformLocation(program, "light_direction");
     GLuint bones_location = glGetUniformLocation(program, "bones");
 
+    GLuint offsets_vbo;
+    glGenBuffers(1, &offsets_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, offsets_vbo);
+
     std::vector<GLuint> query_ids;
     std::vector<bool> query_free;
 
@@ -240,6 +246,11 @@ int main() try
         setup_attribute(1, input_model.meshes[i].normal);
         setup_attribute(2, input_model.meshes[i].texcoord);
 
+        glBindBuffer(GL_ARRAY_BUFFER, offsets_vbo);
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glVertexAttribDivisor(3, 1);
+
         vaos.push_back(vao);
     }
 
@@ -268,6 +279,7 @@ int main() try
     float time = 0.f;
     float last_log = 0.f;
     unsigned long long last_frames = 0;
+    unsigned long long last_instanced = 0;
     unsigned long long last_time = 0;
 
     std::map<SDL_Keycode, bool> button_down;
@@ -352,8 +364,6 @@ int main() try
         float near = 0.1f;
         float far = 100.f;
 
-        glm::mat4 model(1.f);
-
         glm::mat4 view(1.f);
         view = glm::rotate(view, camera_rotation, {0.f, 1.f, 0.f});
         view = glm::translate(view, -camera_position);
@@ -364,18 +374,42 @@ int main() try
 
         glm::vec3 light_direction = glm::normalize(glm::vec3(1.f, 2.f, 3.f));
 
+        glm::mat4 model = glm::mat4(1.f);
+
         glUseProgram(program);
-        glUniformMatrix4fv(model_location, 1, GL_FALSE, reinterpret_cast<float *>(&model));
         glUniformMatrix4fv(view_location, 1, GL_FALSE, reinterpret_cast<float *>(&view));
+        glUniformMatrix4fv(model_location, 1, GL_FALSE, reinterpret_cast<float *>(&model));
         glUniformMatrix4fv(projection_location, 1, GL_FALSE, reinterpret_cast<float *>(&projection));
         glUniform3fv(light_direction_location, 1, reinterpret_cast<float *>(&light_direction));
 
         glBindTexture(GL_TEXTURE_2D, texture);
 
+        glBindVertexArray(vaos[0]);
+
+        frustum frustum(projection * view);
+        glBindBuffer(GL_ARRAY_BUFFER, offsets_vbo);
+
+        std::vector<glm::vec3> offsets[6];
+        for (int x = -16; x < 16; ++x)
         {
-            auto const & mesh = input_model.meshes[0];
-            glBindVertexArray(vaos[0]);
-            glDrawElements(GL_TRIANGLES, mesh.indices.count, mesh.indices.type, reinterpret_cast<void *>(mesh.indices.view.offset));
+            for (int y = -16; y < 16; ++y)
+            {
+                auto aabb_min = input_model.meshes[0].min + glm::vec3(x, 0.f, y);
+                auto aabb_max = input_model.meshes[0].max + glm::vec3(x, 0.f, y);
+                if (intersect(frustum, aabb(aabb_min, aabb_max)))
+                {
+                    float distance = glm::length(glm::vec3(x, 0.f, y) - camera_position);
+                    int lod = std::clamp((int)distance / 10, 0, 5);
+                    offsets[lod].push_back(glm::vec3(x, 0.f, y));
+                    last_instanced++;
+                }
+            }
+        }
+
+        for (int i = 0; i < 6; ++i)
+        {
+            glBufferData(GL_ARRAY_BUFFER, offsets[i].size() * sizeof(glm::vec3), offsets[i].data(), GL_STATIC_DRAW);
+            glDrawElementsInstanced(GL_TRIANGLES, input_model.meshes[i].indices.count, input_model.meshes[i].indices.type, reinterpret_cast<void *>(input_model.meshes[i].indices.view.offset), offsets[i].size());
         }
 
         glEndQuery(GL_TIME_ELAPSED);
@@ -402,9 +436,11 @@ int main() try
         if (time - last_log > 1.f)
         {
             std::cout << "Average frame render time: " << last_time / last_frames / 1000000.f << "ms" << std::endl;
+            std::cout << "Average instanced: " << last_instanced / last_frames << std::endl;
             last_log = time;
             last_time = 0;
             last_frames = 0;
+            last_instanced = 0;
         }
     }
 
