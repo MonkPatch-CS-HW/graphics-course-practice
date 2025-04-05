@@ -268,6 +268,8 @@ int main() try
         textures[*mesh.material.texture_path] = texture;
     }
 
+    auto animation = input_model.animations.at("hip-hop");
+
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
     float time = 0.f;
@@ -344,7 +346,7 @@ int main() try
         float near = 0.1f;
         float far = 100.f;
 
-        glm::mat4 model = glm::scale(glm::mat4(1.f), glm::vec3(1.f));
+        glm::mat4 model = glm::scale(glm::mat4(1.f), glm::vec3(0.01f));
 
         glm::mat4 view(1.f);
         view = glm::translate(view, {0.f, 0.f, -camera_distance});
@@ -367,7 +369,16 @@ int main() try
         float scale = 0.75 + std::cos(time) * 0.25;
         std::vector<glm::mat4x3> bones(input_model.bones.size());
         for (size_t i = 0; i < input_model.bones.size(); i++) {
-            bones[i] = glm::mat4x3(scale);
+            auto translation = glm::translate(glm::mat4(1.f), animation.bones[i].translation(0.f));
+            auto rotation = glm::mat4_cast(animation.bones[i].rotation(0.f));
+            auto scale = glm::scale(glm::mat4(1.f), animation.bones[i].scale(0.f));
+            bones[i] = translation * rotation * scale;
+            if (input_model.bones[i].parent != -1) {
+                bones[i] = glm::mat4(bones[input_model.bones[i].parent]) * glm::mat4(bones[i]);
+            }
+        }
+        for (size_t i = 0; i < input_model.bones.size(); i++) {
+            bones[i] = glm::mat4(bones[i]) * glm::mat4(input_model.bones[i].inverse_bind_matrix);
         }
         glUniformMatrix4x3fv(bones_location, bones.size(), GL_FALSE, reinterpret_cast<float *>(bones.data()));
 
