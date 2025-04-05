@@ -369,9 +369,9 @@ int main() try
         float scale = 0.75 + std::cos(time) * 0.25;
         std::vector<glm::mat4x3> bones(input_model.bones.size());
         for (size_t i = 0; i < input_model.bones.size(); i++) {
-            auto translation = glm::translate(glm::mat4(1.f), animation.bones[i].translation(0.f));
-            auto rotation = glm::mat4_cast(animation.bones[i].rotation(0.f));
-            auto scale = glm::scale(glm::mat4(1.f), animation.bones[i].scale(0.f));
+            auto translation = glm::translate(glm::mat4(1.f), animation.bones[i].translation(std::fmod(time, animation.max_time)));
+            auto rotation = glm::mat4_cast(animation.bones[i].rotation(std::fmod(time, animation.max_time)));
+            auto scale = glm::scale(glm::mat4(1.f), animation.bones[i].scale(std::fmod(time, animation.max_time)));
             bones[i] = translation * rotation * scale;
             if (input_model.bones[i].parent != -1) {
                 bones[i] = glm::mat4(bones[input_model.bones[i].parent]) * glm::mat4(bones[i]);
