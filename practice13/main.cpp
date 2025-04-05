@@ -268,7 +268,11 @@ int main() try
         textures[*mesh.material.texture_path] = texture;
     }
 
-    auto animation = input_model.animations.at("hip-hop");
+    gltf_model::animation animation = input_model.animations.at("hip-hop");
+    gltf_model::animation next_animation = input_model.animations.at("hip-hop");
+    float animation_switch_start = 0.f;
+    float animation_switch_duration = 1.f;
+
 
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
@@ -313,6 +317,21 @@ int main() try
 
         if (!running)
             break;
+
+        if (animation_switch_start + animation_switch_duration < time) {
+            if (button_down[SDLK_1]) {
+                next_animation = input_model.animations.at("hip-hop");
+                animation_switch_start = time;
+            } else if (button_down[SDLK_2]) {
+                next_animation = input_model.animations.at("rumba");
+                animation_switch_start = time;
+            } else if (button_down[SDLK_3]) {
+                next_animation = input_model.animations.at("flair");
+                animation_switch_start = time;
+            } else {
+                animation = next_animation;
+            }
+        }
 
         auto now = std::chrono::high_resolution_clock::now();
         float dt = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_frame_start).count();
@@ -366,12 +385,14 @@ int main() try
         glUniformMatrix4fv(projection_location, 1, GL_FALSE, reinterpret_cast<float *>(&projection));
         glUniform3fv(light_direction_location, 1, reinterpret_cast<float *>(&light_direction));
 
-        float scale = 0.75 + std::cos(time) * 0.25;
         std::vector<glm::mat4x3> bones(input_model.bones.size());
         for (size_t i = 0; i < input_model.bones.size(); i++) {
-            auto translation = glm::translate(glm::mat4(1.f), animation.bones[i].translation(std::fmod(time, animation.max_time)));
-            auto rotation = glm::mat4_cast(animation.bones[i].rotation(std::fmod(time, animation.max_time)));
-            auto scale = glm::scale(glm::mat4(1.f), animation.bones[i].scale(std::fmod(time, animation.max_time)));
+            float t0 = std::fmod(time, animation.max_time);
+            float t1 = std::fmod(time, next_animation.max_time);
+            float t = (time - animation_switch_start) / animation_switch_duration;
+            auto translation = glm::translate(glm::mat4(1.f), glm::lerp(animation.bones[i].translation(t0), next_animation.bones[i].translation(t1), t));
+            auto rotation = glm::toMat4(glm::slerp(animation.bones[i].rotation(t0), next_animation.bones[i].rotation(t1), t));
+            auto scale = glm::scale(glm::mat4(1.f), glm::lerp(animation.bones[i].scale(t0), next_animation.bones[i].scale(t1), t));
             bones[i] = translation * rotation * scale;
             if (input_model.bones[i].parent != -1) {
                 bones[i] = glm::mat4(bones[input_model.bones[i].parent]) * glm::mat4(bones[i]);
