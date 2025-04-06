@@ -78,7 +78,8 @@ void main()
 {
     float texture_value = median(texture(sdf_texture, texcoord).rgb);
     float sdf_value = sdf_scale * (texture_value - 0.5f);
-    float alpha = smoothstep(-0.5f, 0.5f, sdf_value);
+    float step = length(vec2(dFdx(sdf_value), dFdy(sdf_value))) / sqrt(2.f);
+    float alpha = smoothstep(-step, step, sdf_value);
     out_color = vec4(vec3(1.0), alpha);
 }
 )";
@@ -194,12 +195,7 @@ int main() try
 
     std::vector<vertex> vertices;
 
-    glm::mat4 initial_transform = glm::mat4(1.f);
-    initial_transform = glm::scale(initial_transform, glm::vec3(2.f / width, -2.f / height, 1.f));
-    initial_transform = glm::translate(initial_transform, glm::vec3(-width / 2.f, -height / 2.f, 0.f));
-
-    glm::mat4 transform = initial_transform;
-
+    glm::mat4 transform = glm::mat4(1.f);
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
@@ -310,7 +306,12 @@ int main() try
             glm::vec2 bbox_size = bbox_max - bbox_min;
             glm::vec2 bbox_center = bbox_min + bbox_size / 2.0f;
             glm::vec2 screen_size(width, height);
-            transform = glm::translate(initial_transform, glm::vec3(screen_size / 2.0f - bbox_center, 0.0f));
+            float scale = std::min(width / bbox_size.x, height / bbox_size.y);
+
+            transform = glm::mat4(1.f);
+            transform = glm::scale(transform, glm::vec3(1.8f * scale / width, -1.8f * scale / height, 1.f));
+            transform = glm::translate(transform, glm::vec3(-width / 2.f, -height / 2.f, 0.f));
+            transform = glm::translate(transform, glm::vec3(screen_size / 2.0f - bbox_center, 0.0f));
         }
 
         glClearColor(0.8f, 0.8f, 1.f, 0.f);
