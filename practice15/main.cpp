@@ -181,11 +181,7 @@ int main() try
         stbi_image_free(data);
     }
 
-    std::vector<vertex> vertices = {
-        (vertex){.position = {0.f, 0.f}, .texcoord = {0.f, 0.f}},
-        (vertex){.position = {100.f, 0.f}, .texcoord = {1.f, 0.f}},
-        (vertex){.position = {0.f, 100.f}, .texcoord = {0.f, 1.f}},
-    };
+    std::vector<vertex> vertices;
 
     glm::mat4 transform = glm::mat4(1.f);
     transform = glm::scale(transform, glm::vec3(2.f / width, -2.f / height, 1.f));
@@ -194,7 +190,7 @@ int main() try
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex), vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -255,6 +251,39 @@ int main() try
         float dt = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_frame_start).count();
         last_frame_start = now;
 
+        if (text_changed)
+        {
+            vertices.clear();
+            text_changed = false;
+
+            glm::vec2 pen(0.0f);
+            for (auto c : text)
+            {
+                auto glyph = font.glyphs.at(c);
+                vertex tmpl[2][2];
+                tmpl[0][0].position = pen + glm::vec2(glyph.xoffset, glyph.yoffset);
+                tmpl[0][1].position = pen + glm::vec2(glyph.xoffset + glyph.width, glyph.yoffset);
+                tmpl[1][0].position = pen + glm::vec2(glyph.xoffset, glyph.yoffset + glyph.height);
+                tmpl[1][1].position = pen + glm::vec2(glyph.xoffset + glyph.width, glyph.yoffset + glyph.height);
+
+                tmpl[0][0].texcoord = glm::vec2(glyph.x / (float)texture_width, glyph.y / (float)texture_height);
+                tmpl[0][1].texcoord = glm::vec2((glyph.x + glyph.width) / (float)texture_width, glyph.y / (float)texture_height);
+                tmpl[1][0].texcoord = glm::vec2(glyph.x / (float)texture_width, (glyph.y + glyph.height) / (float)texture_height);
+                tmpl[1][1].texcoord = glm::vec2((glyph.x + glyph.width) / (float)texture_width, (glyph.y + glyph.height) / (float)texture_height);
+
+
+                vertices.push_back(tmpl[0][0]);
+                vertices.push_back(tmpl[0][1]);
+                vertices.push_back(tmpl[1][0]);
+                
+                vertices.push_back(tmpl[1][0]);
+                vertices.push_back(tmpl[0][1]);
+                vertices.push_back(tmpl[1][1]);
+
+                pen += glm::vec2((float)glyph.advance, 0.0f);
+            }
+        }
+
         glClearColor(0.8f, 0.8f, 1.f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -267,8 +296,11 @@ int main() try
         glUseProgram(msdf_program);
         glUniformMatrix4fv(transform_location, 1, GL_FALSE, reinterpret_cast<const float *>(&transform));
 
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex), vertices.data(), GL_STATIC_DRAW);
+
         glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
         SDL_GL_SwapWindow(window);
     }
