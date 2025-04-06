@@ -48,11 +48,40 @@ R"(#version 330 core
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform sampler2D bump_texture;
 
 layout (location = 0) in vec3 in_position;
 layout (location = 1) in vec3 in_tangent;
 layout (location = 2) in vec3 in_normal;
 layout (location = 3) in vec2 in_texcoord;
+
+out vec3 g_position;
+out vec3 g_tangent;
+out vec3 g_normal;
+out vec2 g_texcoord;
+
+void main()
+{
+    g_position = (model * vec4(in_position, 1.0)).xyz * (texture(bump_texture, in_texcoord).r * 0.1 + 0.95);
+    gl_Position = projection * view * vec4(g_position, 1.0);
+    g_tangent = mat3(model) * in_tangent;
+    g_normal = mat3(model) * in_normal;
+    g_texcoord = in_texcoord;
+}
+)";
+
+const char geometry_shader_source[] =
+R"(#version 330 core
+
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
+
+uniform mat4 model;
+
+in vec3 g_position[];
+in vec3 g_tangent[];
+in vec3 g_normal[];
+in vec2 g_texcoord[];
 
 out vec3 position;
 out vec3 tangent;
@@ -61,12 +90,33 @@ out vec2 texcoord;
 
 void main()
 {
-    position = (model * vec4(in_position, 1.0)).xyz;
-    gl_Position = projection * view * vec4(position, 1.0);
-    tangent = mat3(model) * in_tangent;
-    normal = mat3(model) * in_normal;
-    texcoord = in_texcoord;
+    normal = normalize(cross(vec3(gl_in[1].gl_Position) - vec3(gl_in[0].gl_Position), vec3(gl_in[2].gl_Position) - vec3(gl_in[0].gl_Position)));
+    normal = mat3(model) * normal;
+
+    position = g_position[0];
+    tangent = g_tangent[0];
+    normal = g_normal[0];
+    texcoord = g_texcoord[0];
+    gl_Position = gl_in[0].gl_Position;
+    EmitVertex();
+
+    position = g_position[1];
+    tangent = g_tangent[1];
+    normal = g_normal[1];
+    texcoord = g_texcoord[1];
+    gl_Position = gl_in[1].gl_Position;
+    EmitVertex();
+
+    position = g_position[2];
+    tangent = g_tangent[2];
+    normal = g_normal[2];
+    texcoord = g_texcoord[2];
+    gl_Position = gl_in[2].gl_Position;
+    EmitVertex();
+
+    EndPrimitive();
 }
+
 )";
 
 const char fragment_shader_source[] =
@@ -76,7 +126,8 @@ uniform vec3 light_direction;
 uniform vec3 camera_position;
 
 uniform sampler2D albedo_texture;
-uniform sampler2D normal_texture;
+uniform sampler2D specular_texture;
+uniform sampler2D bump_texture;
 uniform sampler2D environment_texture;
 
 in vec3 position;
@@ -90,10 +141,7 @@ const float PI = 3.141592653589793;
 
 void main()
 {
-    vec3 bitangent = cross(normal, tangent);
-    mat3 tbn = mat3(tangent, bitangent, normal);
-
-    vec3 real_normal = tbn * (texture(normal_texture, texcoord).xyz * 2.0 - 1.0);
+    vec3 real_normal = normalize(normal);
 
     vec3 view_direction = normalize(position - camera_position);
     vec3 reflection_direction = reflect(view_direction, real_normal);
@@ -108,8 +156,9 @@ void main()
     float lightness = ambient_light + max(0.0, dot(normalize(real_normal), light_direction));
 
     vec3 albedo = texture(albedo_texture, texcoord).rgb;
+    float specular = texture(specular_texture, texcoord).r;
 
-    out_color = vec4((lightness * albedo + environment_color) * 0.5, 1.0);
+    out_color = vec4((lightness * albedo * specular + environment_color * (1.0 - specular)), 1.0);
 }
 )";
 
@@ -186,11 +235,13 @@ GLuint create_shader(GLenum type, const char * source)
     return result;
 }
 
-GLuint create_program(GLuint vertex_shader, GLuint fragment_shader)
+GLuint create_program(GLuint vertex_shader, GLuint fragment_shader, GLuint geometry_shader = 0)
 {
     GLuint result = glCreateProgram();
     glAttachShader(result, vertex_shader);
     glAttachShader(result, fragment_shader);
+    if (geometry_shader)
+        glAttachShader(result, geometry_shader);
     glLinkProgram(result);
 
     GLint status;
@@ -253,15 +304,18 @@ std::pair<std::vector<vertex>, std::vector<std::uint32_t>> generate_sphere(float
     return {std::move(vertices), std::move(indices)};
 }
 
-GLuint load_texture(std::string const & path)
+GLuint load_texture(std::string const & path, bool is_single_channel = false)
 {
     int width, height, channels;
-    auto pixels = stbi_load(path.data(), &width, &height, &channels, 4);
+    auto pixels = stbi_load(path.data(), &width, &height, &channels, is_single_channel ? 1 : 4);
 
     GLuint result;
     glGenTextures(1, &result);
     glBindTexture(GL_TEXTURE_2D, result);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    if (is_single_channel)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, pixels);
+    else
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -313,7 +367,8 @@ int main() try
 
     auto vertex_shader = create_shader(GL_VERTEX_SHADER, vertex_shader_source);
     auto fragment_shader = create_shader(GL_FRAGMENT_SHADER, fragment_shader_source);
-    auto program = create_program(vertex_shader, fragment_shader);
+    auto geometry_shader = create_shader(GL_GEOMETRY_SHADER, geometry_shader_source);
+    auto program = create_program(vertex_shader, fragment_shader, geometry_shader);
 
     auto vertex_shader_environment = create_shader(GL_VERTEX_SHADER, vertex_shader_environment_source);
     auto fragment_shader_environment = create_shader(GL_FRAGMENT_SHADER, fragment_shader_environment_source);
@@ -325,13 +380,14 @@ int main() try
     GLuint light_direction_location = glGetUniformLocation(program, "light_direction");
     GLuint camera_position_location = glGetUniformLocation(program, "camera_position");
     GLuint albedo_texture_location = glGetUniformLocation(program, "albedo_texture");
-    GLuint normal_texture_location = glGetUniformLocation(program, "normal_texture");
+    GLuint bump_texture_location = glGetUniformLocation(program, "bump_texture");
     GLuint environment_texture_location = glGetUniformLocation(program, "environment_texture");
 
     GLuint view_location_environment = glGetUniformLocation(program_environment, "view");
     GLuint projection_location_environment = glGetUniformLocation(program_environment, "projection");
     GLuint camera_position_location_environment = glGetUniformLocation(program_environment, "camera_position");
     GLuint environment_texture_location_environment = glGetUniformLocation(program_environment, "environment_texture");
+    GLuint specular_texture_location_environment = glGetUniformLocation(program_environment, "specular_texture");
 
     GLuint sphere_vao, sphere_vbo, sphere_ebo;
     glGenVertexArrays(1, &sphere_vao);
@@ -360,10 +416,10 @@ int main() try
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void *)offsetof(vertex, texcoords));
 
     std::string project_root = PROJECT_ROOT;
-    GLuint albedo_texture = load_texture(project_root + "/textures/brick_albedo.jpg");
-    GLuint normal_texture = load_texture(project_root + "/textures/brick_normal.jpg");
+    GLuint albedo_texture = load_texture(project_root + "/textures/8081_earthmap2k.jpg");
+    GLuint bump_texture = load_texture(project_root + "/textures/8081_earthbump2k.jpg", true);
     GLuint environment_texture = load_texture(project_root + "/textures/environment_map.jpg");
-
+    GLuint specular_texture = load_texture(project_root + "/textures/8081_earthspec2k.jpg");
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
     float time = 0.f;
@@ -442,10 +498,13 @@ int main() try
         glBindTexture(GL_TEXTURE_2D, albedo_texture);
 
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, normal_texture);
+        glBindTexture(GL_TEXTURE_2D, bump_texture);
 
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, environment_texture);
+
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, specular_texture);
 
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
@@ -454,6 +513,7 @@ int main() try
         glUniformMatrix4fv(projection_location_environment, 1, GL_FALSE, reinterpret_cast<float *>(&projection));
         glUniform3fv(camera_position_location_environment, 1, reinterpret_cast<float *>(&camera_position));
         glUniform1i(environment_texture_location_environment, 2);
+        glUniform1i(specular_texture_location_environment, 3);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -466,7 +526,7 @@ int main() try
         glUniform3fv(light_direction_location, 1, reinterpret_cast<float *>(&light_direction));
         glUniform3fv(camera_position_location, 1, reinterpret_cast<float *>(&camera_position));
         glUniform1i(albedo_texture_location, 0);
-        glUniform1i(normal_texture_location, 1);
+        glUniform1i(bump_texture_location, 1);
         glUniform1i(environment_texture_location, 2);
 
         glBindVertexArray(sphere_vao);
