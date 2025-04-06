@@ -194,9 +194,12 @@ int main() try
 
     std::vector<vertex> vertices;
 
-    glm::mat4 transform = glm::mat4(1.f);
-    transform = glm::scale(transform, glm::vec3(2.f / width, -2.f / height, 1.f));
-    transform = glm::translate(transform, glm::vec3(-width / 2.f, -height / 2.f, 0.f));
+    glm::mat4 initial_transform = glm::mat4(1.f);
+    initial_transform = glm::scale(initial_transform, glm::vec3(2.f / width, -2.f / height, 1.f));
+    initial_transform = glm::translate(initial_transform, glm::vec3(-width / 2.f, -height / 2.f, 0.f));
+
+    glm::mat4 transform = initial_transform;
+
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
@@ -268,6 +271,8 @@ int main() try
             text_changed = false;
 
             glm::vec2 pen(0.0f);
+            glm::vec2 bbox_min(0.0f);
+            glm::vec2 bbox_max(0.0f);
             for (auto c : text)
             {
                 auto glyph = font.glyphs.at(c);
@@ -277,24 +282,35 @@ int main() try
                 tmpl[1][0].position = pen + glm::vec2(glyph.xoffset, glyph.yoffset + glyph.height);
                 tmpl[1][1].position = pen + glm::vec2(glyph.xoffset + glyph.width, glyph.yoffset + glyph.height);
 
+                for (int i = 0; i < 2; i++)
+                {
+                    for (int j = 0; j < 2; j++)
+                    {
+                        bbox_min = glm::min(bbox_min, tmpl[i][j].position);
+                        bbox_max = glm::max(bbox_max, tmpl[i][j].position);
+                    }
+                }
+
                 tmpl[0][0].texcoord = glm::vec2(glyph.x, glyph.y) / glm::vec2(texture_width, texture_height);
                 tmpl[0][1].texcoord = glm::vec2((glyph.x + glyph.width), glyph.y) / glm::vec2(texture_width, texture_height);
                 tmpl[1][0].texcoord = glm::vec2(glyph.x, (glyph.y + glyph.height)) / glm::vec2(texture_width, texture_height);
                 tmpl[1][1].texcoord = glm::vec2((glyph.x + glyph.width), (glyph.y + glyph.height)) / glm::vec2(texture_width, texture_height);
 
-
-                // First triangle (bottom-left, bottom-right, top-left)
-                vertices.push_back(tmpl[0][0]); // bottom-left
-                vertices.push_back(tmpl[0][1]); // bottom-right
-                vertices.push_back(tmpl[1][0]); // top-left
-
-                // Second triangle (bottom-right, top-right, top-left)
-                vertices.push_back(tmpl[0][1]); // bottom-right
-                vertices.push_back(tmpl[1][1]); // top-right
-                vertices.push_back(tmpl[1][0]); // top-left
+                vertices.push_back(tmpl[0][0]);
+                vertices.push_back(tmpl[0][1]);
+                vertices.push_back(tmpl[1][0]);
+            
+                vertices.push_back(tmpl[0][1]);
+                vertices.push_back(tmpl[1][1]);
+                vertices.push_back(tmpl[1][0]);
 
                 pen += glm::vec2((float)glyph.advance, 0.0f);
             }
+
+            glm::vec2 bbox_size = bbox_max - bbox_min;
+            glm::vec2 bbox_center = bbox_min + bbox_size / 2.0f;
+            glm::vec2 screen_size(width, height);
+            transform = glm::translate(initial_transform, glm::vec3(screen_size / 2.0f - bbox_center, 0.0f));
         }
 
         glClearColor(0.8f, 0.8f, 1.f, 0.f);
