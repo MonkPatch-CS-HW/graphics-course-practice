@@ -46,22 +46,30 @@ void glew_fail(std::string_view message, GLenum error)
 const char msdf_vertex_shader_source[] =
 R"(#version 330 core
 
+layout (location = 0) in vec2 in_position;
+layout (location = 1) in vec2 in_texcoord;
+
 uniform mat4 transform;
+
+out vec2 texcoord;
 
 void main()
 {
-    gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+    gl_Position = vec4(in_position, 0.0, 1.0);
+    texcoord = in_texcoord;
 }
 )";
 
 const char msdf_fragment_shader_source[] =
 R"(#version 330 core
 
+in vec2 texcoord;
+
 layout (location = 0) out vec4 out_color;
 
 void main()
 {
-    out_color = vec4(0.0);
+    out_color = vec4(texcoord, 0.0, 1.0);
 }
 )";
 
@@ -103,6 +111,11 @@ GLuint create_program(Shaders ... shaders)
 
     return result;
 }
+
+struct vertex {
+    glm::vec2 position;
+    glm::vec2 texcoord;
+};
 
 int main() try
 {
@@ -168,6 +181,25 @@ int main() try
         stbi_image_free(data);
     }
 
+    std::vector<vertex> vertices = {
+        (vertex){.position = {0.f, 0.f}, .texcoord = {0.f, 0.f}},
+        (vertex){.position = {100.f, 0.f}, .texcoord = {1.f, 0.f}},
+        (vertex){.position = {0.f, 100.f}, .texcoord = {0.f, 1.f}},
+    };
+
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex), vertices.data(), GL_STATIC_DRAW);
+
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, texcoord));
+
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
     float time = 0.f;
@@ -227,6 +259,10 @@ int main() try
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
+
+        glUseProgram(msdf_program);
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         SDL_GL_SwapWindow(window);
     }
