@@ -68,6 +68,8 @@ in vec2 texcoord;
 layout (location = 0) out vec4 out_color;
 
 uniform float sdf_scale;
+uniform vec3 text_color;
+uniform float text_bloat;
 uniform sampler2D sdf_texture;
 
 float median(vec3 v) {
@@ -77,10 +79,11 @@ float median(vec3 v) {
 void main()
 {
     float texture_value = median(texture(sdf_texture, texcoord).rgb);
-    float sdf_value = sdf_scale * (texture_value - 0.5f);
+    float sdf_value = sdf_scale * (texture_value - 0.5f + text_bloat);
     float step = length(vec2(dFdx(sdf_value), dFdy(sdf_value))) / sqrt(2.f);
     float alpha = smoothstep(-step, step, sdf_value);
-    out_color = vec4(vec3(1.0), alpha);
+
+    out_color = vec4(text_color, alpha);
 }
 )";
 
@@ -170,6 +173,8 @@ int main() try
 
     GLuint transform_location = glGetUniformLocation(msdf_program, "transform");
     GLuint sdf_scale_location = glGetUniformLocation(msdf_program, "sdf_scale");
+    GLuint text_color_location = glGetUniformLocation(msdf_program, "text_color");
+    GLuint text_bloat_location = glGetUniformLocation(msdf_program, "text_bloat");
 
     const std::string project_root = PROJECT_ROOT;
     const std::string font_path = project_root + "/font/font-msdf.json";
@@ -331,6 +336,15 @@ int main() try
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex), vertices.data(), GL_STATIC_DRAW);
 
         glBindVertexArray(vao);
+
+        glm::vec3 text_color(1.0f);
+        glUniform3fv(text_color_location, 1, reinterpret_cast<const float *>(&text_color));
+        glUniform1f(text_bloat_location, 0.2f);
+        glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+        text_color = glm::vec3(0.0f);
+        glUniform3fv(text_color_location, 1, reinterpret_cast<const float *>(&text_color));
+        glUniform1f(text_bloat_location, 0.0f);
         glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
         SDL_GL_SwapWindow(window);
