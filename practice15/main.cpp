@@ -55,7 +55,7 @@ out vec2 texcoord;
 
 void main()
 {
-    gl_Position = vec4(in_position, 0.0, 1.0);
+    gl_Position = transform * vec4(in_position, 0.0, 1.0);
     texcoord = in_texcoord;
 }
 )";
@@ -187,6 +187,10 @@ int main() try
         (vertex){.position = {0.f, 100.f}, .texcoord = {0.f, 1.f}},
     };
 
+    glm::mat4 transform = glm::mat4(1.f);
+    transform = glm::scale(transform, glm::vec3(2.f / width, -2.f / height, 1.f));
+    transform = glm::translate(transform, glm::vec3(-width / 2.f, -height / 2.f, 0.f));
+
     GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -261,6 +265,8 @@ int main() try
         glBindTexture(GL_TEXTURE_2D, texture);
 
         glUseProgram(msdf_program);
+        glUniformMatrix4fv(transform_location, 1, GL_FALSE, reinterpret_cast<const float *>(&transform));
+
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
