@@ -67,9 +67,19 @@ in vec2 texcoord;
 
 layout (location = 0) out vec4 out_color;
 
+uniform float sdf_scale;
+uniform sampler2D sdf_texture;
+
+float median(vec3 v) {
+    return max(min(v.r, v.g), min(max(v.r, v.g), v.b));
+}
+
 void main()
 {
-    out_color = vec4(texcoord, 0.0, 1.0);
+    float texture_value = median(texture(sdf_texture, texcoord).rgb);
+    float sdf_value = sdf_scale * (texture_value - 0.5f);
+    float alpha = smoothstep(-0.5f, 0.5f, sdf_value);
+    out_color = vec4(vec3(1.0), alpha);
 }
 )";
 
@@ -158,6 +168,7 @@ int main() try
     auto msdf_program = create_program(msdf_vertex_shader, msdf_fragment_shader);
 
     GLuint transform_location = glGetUniformLocation(msdf_program, "transform");
+    GLuint sdf_scale_location = glGetUniformLocation(msdf_program, "sdf_scale");
 
     const std::string project_root = PROJECT_ROOT;
     const std::string font_path = project_root + "/font/font-msdf.json";
@@ -266,19 +277,21 @@ int main() try
                 tmpl[1][0].position = pen + glm::vec2(glyph.xoffset, glyph.yoffset + glyph.height);
                 tmpl[1][1].position = pen + glm::vec2(glyph.xoffset + glyph.width, glyph.yoffset + glyph.height);
 
-                tmpl[0][0].texcoord = glm::vec2(glyph.x / (float)texture_width, glyph.y / (float)texture_height);
-                tmpl[0][1].texcoord = glm::vec2((glyph.x + glyph.width) / (float)texture_width, glyph.y / (float)texture_height);
-                tmpl[1][0].texcoord = glm::vec2(glyph.x / (float)texture_width, (glyph.y + glyph.height) / (float)texture_height);
-                tmpl[1][1].texcoord = glm::vec2((glyph.x + glyph.width) / (float)texture_width, (glyph.y + glyph.height) / (float)texture_height);
+                tmpl[0][0].texcoord = glm::vec2(glyph.x, glyph.y) / glm::vec2(texture_width, texture_height);
+                tmpl[0][1].texcoord = glm::vec2((glyph.x + glyph.width), glyph.y) / glm::vec2(texture_width, texture_height);
+                tmpl[1][0].texcoord = glm::vec2(glyph.x, (glyph.y + glyph.height)) / glm::vec2(texture_width, texture_height);
+                tmpl[1][1].texcoord = glm::vec2((glyph.x + glyph.width), (glyph.y + glyph.height)) / glm::vec2(texture_width, texture_height);
 
 
-                vertices.push_back(tmpl[0][0]);
-                vertices.push_back(tmpl[0][1]);
-                vertices.push_back(tmpl[1][0]);
-                
-                vertices.push_back(tmpl[1][0]);
-                vertices.push_back(tmpl[0][1]);
-                vertices.push_back(tmpl[1][1]);
+                // First triangle (bottom-left, bottom-right, top-left)
+                vertices.push_back(tmpl[0][0]); // bottom-left
+                vertices.push_back(tmpl[0][1]); // bottom-right
+                vertices.push_back(tmpl[1][0]); // top-left
+
+                // Second triangle (bottom-right, top-right, top-left)
+                vertices.push_back(tmpl[0][1]); // bottom-right
+                vertices.push_back(tmpl[1][1]); // top-right
+                vertices.push_back(tmpl[1][0]); // top-left
 
                 pen += glm::vec2((float)glyph.advance, 0.0f);
             }
@@ -295,6 +308,7 @@ int main() try
 
         glUseProgram(msdf_program);
         glUniformMatrix4fv(transform_location, 1, GL_FALSE, reinterpret_cast<const float *>(&transform));
+        glUniform1f(sdf_scale_location, font.sdf_scale);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex), vertices.data(), GL_STATIC_DRAW);
