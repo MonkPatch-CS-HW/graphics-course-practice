@@ -63,7 +63,7 @@ out vec2 g_texcoord;
 
 void main()
 {
-    g_position = (model * vec4(in_position, 1.0)).xyz * (texture(bump_texture, in_texcoord).r * 0.02 + 0.99);
+    g_position = (model * vec4(in_position, 1.0)).xyz * (texture(bump_texture, in_texcoord).r * 0.05 + 0.975);
     g_position_orig = (model * vec4(in_position, 1.0)).xyz;
     gl_Position = projection * view * vec4(g_position, 1.0);
     g_tangent = mat3(model) * in_tangent;
@@ -143,8 +143,8 @@ in vec3 normal;
 in vec2 texcoord;
 
 float phong() {
-    vec3 dposdx = dFdx(position_orig * (texture(bump_texture, texcoord).r * 0.02 + 0.99));
-    vec3 dposdy = dFdy(position_orig * (texture(bump_texture, texcoord).r * 0.02 + 0.99));
+    vec3 dposdx = dFdx(position_orig * (texture(bump_texture, texcoord).r * 0.05 + 0.975));
+    vec3 dposdy = dFdy(position_orig * (texture(bump_texture, texcoord).r * 0.05 + 0.975));
     
     vec3 normal = normalize(cross(dposdx, dposdy));
 
