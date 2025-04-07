@@ -124,6 +124,7 @@ uniform vec3 camera_position;
 uniform float specular_power;
 
 uniform sampler2D albedo_texture;
+uniform sampler2D night_texture;
 uniform sampler2D specular_texture;
 uniform sampler2D bump_texture;
 uniform sampler2D environment_texture;
@@ -159,13 +160,12 @@ void main()
     );
     vec3 environment_color = texture(environment_texture, reflection_texcoord).rgb;
 
-    float ambient_light = 0.2;
-
     float lightness = phong();
 
     vec3 albedo = texture(albedo_texture, texcoord).rgb;
+    vec3 night = texture(night_texture, texcoord).rgb;
 
-    out_color = vec4(lightness * albedo, 1.0);
+    out_color = vec4(albedo * lightness + night * max(0.f, 1.f - lightness), 1.0);
 }
 )";
 
@@ -370,7 +370,7 @@ int main() try
     if (!GLEW_VERSION_3_3)
         throw std::runtime_error("OpenGL 3.3 is not supported");
 
-    glClearColor(0.8f, 0.8f, 1.f, 0.f);
+    glClearColor(0.f, 0.f, 0.f, 0.f);
 
     auto vertex_shader = create_shader(GL_VERTEX_SHADER, vertex_shader_source);
     auto fragment_shader = create_shader(GL_FRAGMENT_SHADER, fragment_shader_source);
@@ -391,6 +391,7 @@ int main() try
     GLuint environment_texture_location = glGetUniformLocation(program, "environment_texture");
     GLuint specular_texture_location = glGetUniformLocation(program, "specular_texture");
     GLuint specular_power_location = glGetUniformLocation(program, "specular_power");
+    GLuint night_texture_location = glGetUniformLocation(program, "night_texture");
 
     GLuint view_location_environment = glGetUniformLocation(program_environment, "view");
     GLuint projection_location_environment = glGetUniformLocation(program_environment, "projection");
@@ -424,10 +425,11 @@ int main() try
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void *)offsetof(vertex, texcoords));
 
     std::string project_root = PROJECT_ROOT;
-    GLuint albedo_texture = load_texture(project_root + "/textures/8081_earthmap2k.jpg");
-    GLuint bump_texture = load_texture(project_root + "/textures/8081_earthbump2k.jpg", true);
+    GLuint albedo_texture = load_texture(project_root + "/textures/8081_earthmap10k.jpg");
+    GLuint night_texture = load_texture(project_root + "/textures/8081_earthlights10k.jpg");
+    GLuint bump_texture = load_texture(project_root + "/textures/8081_earthbump10k.jpg", true);
     GLuint environment_texture = load_texture(project_root + "/textures/environment_map.jpg");
-    GLuint specular_texture = load_texture(project_root + "/textures/8081_earthspec2k.jpg");
+    GLuint specular_texture = load_texture(project_root + "/textures/8081_earthspec10k.jpg");
     auto last_frame_start = std::chrono::high_resolution_clock::now();
 
     float time = 0.f;
@@ -514,6 +516,9 @@ int main() try
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, specular_texture);
 
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, night_texture);
+
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
         // glUseProgram(program_environment);
@@ -537,6 +542,7 @@ int main() try
         glUniform1i(bump_texture_location, 1);
         glUniform1i(environment_texture_location, 2);
         glUniform1i(specular_texture_location, 3);
+        glUniform1i(night_texture_location, 4);
         glUniform1f(specular_power_location, 100.f);
 
         glBindVertexArray(sphere_vao);
