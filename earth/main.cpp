@@ -62,7 +62,7 @@ out vec2 g_texcoord;
 
 void main()
 {
-    g_position = (model * vec4(in_position, 1.0)).xyz * (texture(bump_texture, in_texcoord).r * 0.1 + 0.95);
+    g_position = (model * vec4(in_position, 1.0)).xyz * (texture(bump_texture, in_texcoord).r * 0.02 + 0.99);
     gl_Position = projection * view * vec4(g_position, 1.0);
     g_tangent = mat3(model) * in_tangent;
     g_normal = mat3(model) * in_normal;
@@ -90,26 +90,22 @@ out vec2 texcoord;
 
 void main()
 {
-    normal = normalize(cross(vec3(gl_in[1].gl_Position) - vec3(gl_in[0].gl_Position), vec3(gl_in[2].gl_Position) - vec3(gl_in[0].gl_Position)));
-    normal = mat3(model) * normal;
+    normal = normalize(cross(vec3(g_position[1]) - vec3(g_position[0]), vec3(g_position[2]) - vec3(g_position[0])));
 
     position = g_position[0];
     tangent = g_tangent[0];
-    normal = g_normal[0];
     texcoord = g_texcoord[0];
     gl_Position = gl_in[0].gl_Position;
     EmitVertex();
 
     position = g_position[1];
     tangent = g_tangent[1];
-    normal = g_normal[1];
     texcoord = g_texcoord[1];
     gl_Position = gl_in[1].gl_Position;
     EmitVertex();
 
     position = g_position[2];
     tangent = g_tangent[2];
-    normal = g_normal[2];
     texcoord = g_texcoord[2];
     gl_Position = gl_in[2].gl_Position;
     EmitVertex();
@@ -122,8 +118,10 @@ void main()
 const char fragment_shader_source[] =
 R"(#version 330 core
 
-uniform vec3 light_direction;
+uniform vec3 light_position;
 uniform vec3 camera_position;
+
+uniform float specular_power;
 
 uniform sampler2D albedo_texture;
 uniform sampler2D specular_texture;
@@ -134,6 +132,16 @@ in vec3 position;
 in vec3 tangent;
 in vec3 normal;
 in vec2 texcoord;
+
+float phong() {
+    float ambient = 0.2;
+    vec3 light_direction = normalize(position - light_position);
+    float diffuse = max(0.0, dot(normal, -light_direction));
+    vec3 reflection_direction = normalize(reflect(light_direction, normal));
+    vec3 view_direction = normalize(position - camera_position);    
+    float specular = pow(max(0.0, dot(-view_direction, reflection_direction)), 10.f);
+    return ambient + diffuse + specular * texture(specular_texture, texcoord).r;
+}
 
 layout (location = 0) out vec4 out_color;
 
@@ -153,12 +161,11 @@ void main()
 
     float ambient_light = 0.2;
 
-    float lightness = ambient_light + max(0.0, dot(normalize(real_normal), light_direction));
+    float lightness = phong();
 
     vec3 albedo = texture(albedo_texture, texcoord).rgb;
-    float specular = texture(specular_texture, texcoord).r;
 
-    out_color = vec4((lightness * albedo * specular + environment_color * (1.0 - specular)), 1.0);
+    out_color = vec4(lightness * albedo, 1.0);
 }
 )";
 
@@ -377,17 +384,18 @@ int main() try
     GLuint model_location = glGetUniformLocation(program, "model");
     GLuint view_location = glGetUniformLocation(program, "view");
     GLuint projection_location = glGetUniformLocation(program, "projection");
-    GLuint light_direction_location = glGetUniformLocation(program, "light_direction");
+    GLuint light_position_location = glGetUniformLocation(program, "light_position");
     GLuint camera_position_location = glGetUniformLocation(program, "camera_position");
     GLuint albedo_texture_location = glGetUniformLocation(program, "albedo_texture");
     GLuint bump_texture_location = glGetUniformLocation(program, "bump_texture");
     GLuint environment_texture_location = glGetUniformLocation(program, "environment_texture");
+    GLuint specular_texture_location = glGetUniformLocation(program, "specular_texture");
+    GLuint specular_power_location = glGetUniformLocation(program, "specular_power");
 
     GLuint view_location_environment = glGetUniformLocation(program_environment, "view");
     GLuint projection_location_environment = glGetUniformLocation(program_environment, "projection");
     GLuint camera_position_location_environment = glGetUniformLocation(program_environment, "camera_position");
     GLuint environment_texture_location_environment = glGetUniformLocation(program_environment, "environment_texture");
-    GLuint specular_texture_location_environment = glGetUniformLocation(program_environment, "specular_texture");
 
     GLuint sphere_vao, sphere_vbo, sphere_ebo;
     glGenVertexArrays(1, &sphere_vao);
@@ -396,7 +404,7 @@ int main() try
     glGenBuffers(1, &sphere_ebo);
     GLuint sphere_index_count;
     {
-        auto [vertices, indices] = generate_sphere(1.f, 16);
+        auto [vertices, indices] = generate_sphere(1.f, 256);
 
         glBindBuffer(GL_ARRAY_BUFFER, sphere_vbo);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices[0]), vertices.data(), GL_STATIC_DRAW);
@@ -488,7 +496,7 @@ int main() try
         glm::mat4 projection = glm::mat4(1.f);
         projection = glm::perspective(glm::pi<float>() / 2.f, (1.f * width) / height, near, far);
 
-        glm::vec3 light_direction = glm::normalize(glm::vec3(1.f, 2.f, 3.f));
+        glm::vec3 light_position = glm::vec3(2.f, 2.f, 2.f);
 
         glm::vec3 camera_position = (glm::inverse(view) * glm::vec4(0.f, 0.f, 0.f, 1.f)).xyz();
 
@@ -508,14 +516,14 @@ int main() try
 
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
-        glUseProgram(program_environment);
-        glUniformMatrix4fv(view_location_environment, 1, GL_FALSE, reinterpret_cast<float *>(&view));
-        glUniformMatrix4fv(projection_location_environment, 1, GL_FALSE, reinterpret_cast<float *>(&projection));
-        glUniform3fv(camera_position_location_environment, 1, reinterpret_cast<float *>(&camera_position));
-        glUniform1i(environment_texture_location_environment, 2);
-        glUniform1i(specular_texture_location_environment, 3);
+        // glUseProgram(program_environment);
+        // glUniformMatrix4fv(view_location_environment, 1, GL_FALSE, reinterpret_cast<float *>(&view));
+        // glUniformMatrix4fv(projection_location_environment, 1, GL_FALSE, reinterpret_cast<float *>(&projection));
+        // glUniform3fv(camera_position_location_environment, 1, reinterpret_cast<float *>(&camera_position));
+        // glUniform1i(environment_texture_location_environment, 2);
+        // glUniform1i(specular_texture_location_environment, 3);
 
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        // glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
@@ -523,11 +531,13 @@ int main() try
         glUniformMatrix4fv(model_location, 1, GL_FALSE, reinterpret_cast<float *>(&model));
         glUniformMatrix4fv(view_location, 1, GL_FALSE, reinterpret_cast<float *>(&view));
         glUniformMatrix4fv(projection_location, 1, GL_FALSE, reinterpret_cast<float *>(&projection));
-        glUniform3fv(light_direction_location, 1, reinterpret_cast<float *>(&light_direction));
+        glUniform3fv(light_position_location, 1, reinterpret_cast<float *>(&light_position));
         glUniform3fv(camera_position_location, 1, reinterpret_cast<float *>(&camera_position));
         glUniform1i(albedo_texture_location, 0);
         glUniform1i(bump_texture_location, 1);
         glUniform1i(environment_texture_location, 2);
+        glUniform1i(specular_texture_location, 3);
+        glUniform1f(specular_power_location, 100.f);
 
         glBindVertexArray(sphere_vao);
         glDrawElements(GL_TRIANGLES, sphere_index_count, GL_UNSIGNED_INT, nullptr);
