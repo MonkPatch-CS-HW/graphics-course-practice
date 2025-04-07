@@ -56,6 +56,7 @@ layout (location = 2) in vec3 in_normal;
 layout (location = 3) in vec2 in_texcoord;
 
 out vec3 g_position;
+out vec3 g_position_orig;
 out vec3 g_tangent;
 out vec3 g_normal;
 out vec2 g_texcoord;
@@ -63,6 +64,7 @@ out vec2 g_texcoord;
 void main()
 {
     g_position = (model * vec4(in_position, 1.0)).xyz * (texture(bump_texture, in_texcoord).r * 0.02 + 0.99);
+    g_position_orig = (model * vec4(in_position, 1.0)).xyz;
     gl_Position = projection * view * vec4(g_position, 1.0);
     g_tangent = mat3(model) * in_tangent;
     g_normal = mat3(model) * in_normal;
@@ -79,11 +81,13 @@ layout (triangle_strip, max_vertices = 3) out;
 uniform mat4 model;
 
 in vec3 g_position[];
+in vec3 g_position_orig[];
 in vec3 g_tangent[];
 in vec3 g_normal[];
 in vec2 g_texcoord[];
 
 out vec3 position;
+out vec3 position_orig;
 out vec3 tangent;
 out vec3 normal;
 out vec2 texcoord;
@@ -93,18 +97,21 @@ void main()
     normal = normalize(cross(vec3(g_position[1]) - vec3(g_position[0]), vec3(g_position[2]) - vec3(g_position[0])));
 
     position = g_position[0];
+    position_orig = g_position_orig[0];
     tangent = g_tangent[0];
     texcoord = g_texcoord[0];
     gl_Position = gl_in[0].gl_Position;
     EmitVertex();
 
     position = g_position[1];
+    position_orig = g_position_orig[1];
     tangent = g_tangent[1];
     texcoord = g_texcoord[1];
     gl_Position = gl_in[1].gl_Position;
     EmitVertex();
 
     position = g_position[2];
+    position_orig = g_position_orig[2];
     tangent = g_tangent[2];
     texcoord = g_texcoord[2];
     gl_Position = gl_in[2].gl_Position;
@@ -130,11 +137,17 @@ uniform sampler2D bump_texture;
 uniform sampler2D environment_texture;
 
 in vec3 position;
+in vec3 position_orig;
 in vec3 tangent;
 in vec3 normal;
 in vec2 texcoord;
 
 float phong() {
+    vec3 dposdx = dFdx(position_orig * (texture(bump_texture, texcoord).r * 0.02 + 0.99));
+    vec3 dposdy = dFdy(position_orig * (texture(bump_texture, texcoord).r * 0.02 + 0.99));
+    
+    vec3 normal = normalize(cross(dposdx, dposdy));
+
     float ambient = 0.2;
     vec3 light_direction = normalize(position - light_position);
     float diffuse = max(0.0, dot(normal, -light_direction));
