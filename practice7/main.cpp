@@ -82,23 +82,25 @@ uniform vec3 point_light_attenuation;
 
 uniform float glossiness;
 uniform float roughness;
-uniform float specular_power;
 
 in vec3 position;
 in vec3 normal;
 
+vec3 real_normal = normalize(normal);
+
 layout (location = 0) out vec4 out_color;
 
 vec3 diffuse(vec3 direction) {
-    return albedo * max(0.0, dot(normal, direction));
+    return albedo * max(0.0, dot(real_normal, direction));
 }
 
 vec3 specular(vec3 direction) {
     vec3 light_direction = normalize(point_light_position - position);
-    float cosine = dot(normal, light_direction);
+    float cosine = dot(real_normal, light_direction);
     vec3 view_direction = normalize(position - camera_position);
-    vec3 reflected = 2 * normal * cosine - light_direction;
-    return glossiness * albedo * pow(max(0.0, dot(reflected, view_direction)), specular_power);
+    vec3 reflected = 2 * real_normal * cosine - light_direction;
+    float power = (1.f / (roughness * roughness)) - 1.f;
+    return glossiness * albedo * pow(max(0.0, dot(reflected, view_direction)), power);
 }
 
 void main()
@@ -204,7 +206,6 @@ int main() try {
     GLuint point_light_attenuation_location = glGetUniformLocation(program, "point_light_attenuation");
     GLuint glossiness_location = glGetUniformLocation(program, "glossiness");
     GLuint roughness_location = glGetUniformLocation(program, "roughness");
-    GLuint specular_power_location = glGetUniformLocation(program, "specular_power");
 
     std::string project_root = PROJECT_ROOT;
     std::string suzanne_model_path = project_root + "/suzanne.obj";
@@ -324,7 +325,6 @@ int main() try {
         glUniform3f(point_light_position_location, sin(time), cos(time), 2 * sin(time) * cos(time));
         glUniform3f(point_light_color_location, 1.f, 0.9f, 0.4f);
         glUniform3f(point_light_attenuation_location, 1.f, 0.f, 0.01f);
-        glUniform1f(specular_power_location, 10.f);
 
         if (transparent) {
             glEnable(GL_BLEND);
