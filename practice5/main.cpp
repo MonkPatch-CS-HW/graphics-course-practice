@@ -171,7 +171,7 @@ int main() try
 
     std::vector<uint32_t> mipmap1(256 * 256);
     for (int i = 0; i < 256 * 256; i++)
-        mipmap1[i] = 0xffff0000u;
+        mipmap1[i] = 0xff0000ffu;
 
     std::vector<uint32_t> mipmap2(128 * 128);
     for (int i = 0; i < 128 * 128; i++)
@@ -179,7 +179,7 @@ int main() try
 
     std::vector<uint32_t> mipmap3(64 * 64);
     for (int i = 0; i < 64 * 64; i++)
-        mipmap3[i] = 0xff0000ffu;
+        mipmap3[i] = 0xffff0000u;
 
     GLuint txt;
     glGenTextures(1, &txt);
