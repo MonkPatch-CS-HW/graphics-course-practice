@@ -167,7 +167,7 @@ int main() try
 
     std::vector<uint32_t> texture(512 * 512);
     for (int i = 0; i < 512 * 512; i++)
-        texture[i] = (i % 2) ? 0xffffffffu : 0xff000000u;
+        texture[i] = (((i / 512) % 2) != (i % 2)) ? 0xffffffffu : 0xff000000u;
 
     GLuint txt;
     glGenTextures(1, &txt);
